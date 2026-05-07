@@ -1,0 +1,1 @@
+﻿Pour la variable KC2 et KC3, elles sont contenues dans l'indicateur ka_open qui regroupe KC2 et KC3 mais aussi deux autres indicateurs. Les coefficients ne seront pas directement comparables à ceux du papier original mais comme KC2 et KC3 sont non significatifs dans Chinn & Prasad, ça n'affecte pas les conclusions principales
