@@ -62,7 +62,7 @@ wdi_clean <- wdi_raw |>
   ) |>
   ungroup() |>
   select(iso3, year, CAGDP, RELY, RELDEPY, RELDEPO,
-         gdpgr, LREER, OPEN, FDEEP, NSGDP)
+         gdpgr, LREER, OPEN, FDEEP, NSGDP,totindex)
 
 
 # ── 3. Collapse to 5-year non-overlapping periods (as in the paper) ─────────
@@ -83,6 +83,8 @@ panel <- wdi_clean |>
     OPEN    = mean(OPEN,    na.rm = TRUE),
     FDEEP   = mean(FDEEP,   na.rm = TRUE),
     NSGDP   = mean(NSGDP,   na.rm = TRUE),
+    TOTSD = sd(totindex, na.rm = TRUE),
     .groups = "drop"
   ) |>
   select(-period)
+
