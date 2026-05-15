@@ -2,6 +2,9 @@ library(WDI)
 library(tidyverse)
 library(dplyr)
 library(readxl)
+library(dplyr)
+library(imf.data)
+library(countrycode)
 
 # ── 1. Pull all WDI-available Chinn-Prasad variables ────────────────────────
 
@@ -91,10 +94,8 @@ panel <- wdi_clean |>
   select(-period)
 
 #Introduction of the data set for KC2 and KC3 gathered in ka_open 
-setwd("C:/Users/jlsou/OneDrive/Documents/GitHub/Macro3Project/Data")
-ka_open<- read.csv("ka_open.csv")
-install.packages("countrycode")
-library(countrycode)
+ka_open<- read.csv("Data/ka_open.csv")
+
 
 #the goal is to transform the entire name of countries to iso3c.
 ka_open$iso3 <- countrycode(
@@ -135,7 +136,7 @@ panel_2<- panel %>%
   left_join(ka_open_clean, by = c("iso3", "year"))
 
 #introduction of the NFAGDP variable
-NFAGDP<-read_xlsx("NFAGDP.xlsx")
+NFAGDP<-read_xlsx("Data/NFAGDP.xlsx")
 
 #I keep only variable Country, year and Net IIP excl gold
 
@@ -168,6 +169,34 @@ NFAGDP_clean_2 <- NFAGDP_clean_2 %>%
   select(iso3, everything(), -Country) %>% 
   rename(year = Year) %>%
   rename(NFAGDP = `net IIP excl gold / GDP domestic currency` )
+
+
+
+###GOvBalancetoGDP part ! 
+GovBalance = read_xls("Data/IMF_Balance.xls")
+GovBalance$iso3 <- countrycode(
+  GovBalance$`General government net lending/borrowing (Percent of GDP)`,
+  origin = "country.name",
+  destination = "iso3c"
+)
+
+GovBalance = GovBalance %>% filter(!is.na(iso3)) %>%   rename(country = `General government net lending/borrowing (Percent of GDP)`)
+
+GovBalance = GovBalance %>% select(-`Estimates start after`, -country) |>  # drop junk columns
+  pivot_longer(
+    cols      = -iso3,
+    names_to  = "year",
+    values_to = "gov_balance"
+  ) |>
+  mutate(
+    gov_balance = na_if(gov_balance, "no data"),
+    gov_balance = as.numeric(gov_balance),
+    year        = as.integer(year)
+  ) |>
+  filter(!is.na(gov_balance))
+
+
+
 
 #I create the mean for each period of 5 years 
 NFAGDP_clean_2 <- NFAGDP_clean_2 |>
