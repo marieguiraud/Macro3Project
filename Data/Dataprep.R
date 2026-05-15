@@ -195,6 +195,19 @@ GovBalance = GovBalance %>% select(-`Estimates start after`, -country) |>  # dro
   ) |>
   filter(!is.na(gov_balance))
 
+### 5 Year Averages
+
+GovBalance <- GovBalance |>
+  filter(year >= 1971) |>
+  mutate(period = (year - 1971) %/% 5) |>
+  group_by(iso3, period) |>
+  summarise(
+    year    = min(year),          # label each period by its first year
+    GOVBGDP = mean(gov_balance,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period)
+
 
 
 
@@ -213,5 +226,9 @@ NFAGDP_clean_2 <- NFAGDP_clean_2 |>
 #je merge la base de donnée NFAGDP_clean_2 avec panel_2
 panel_3<- panel_2 %>%
   left_join(NFAGDP_clean_2, by = c("iso3", "year"))
+###Merge with govbgdp
 
+panel4 <- panel_3 %>% 
+  left_join(GovBalance, by = c("iso3","year"))
 
+write.csv(panel4,"Data/panel_3.csv")
