@@ -102,9 +102,13 @@ print(final_table)
 # Build cross-section (country averages) without intercept 
  all_countries <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
  summary(all_countries)
- View(industrial_countries)
- industrial <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
-                    YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + 
-                    ka_open + NSGDP, 
-                  data = panel_p %>% filter(iso3 %in% industrial_countries))
+
+ # Voir exactement combien de lignes complètes selon les variables choisies
+ test_clean <- test %>% select(CAGDP, NFAGDP, RELDEPY, RELDEPO, YGRAVG, YGRSD, OPEN, ka_open)
+ nrow(na.omit(test_clean))
+ 
+ # Régression avec seulement les variables disponibles
+ industrial <- lm(CAGDP ~ -1 + NFAGDP + RELDEPY + RELDEPO + 
+                    YGRAVG + YGRSD + OPEN + ka_open, 
+                  data = na.omit(test_clean))
  summary(industrial)
