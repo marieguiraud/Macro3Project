@@ -1,13 +1,16 @@
 library(tidyverse)
+library(stargazer)
 library(plm)
 library(xtable)
 
+#prelimiaries
 # Data
 panel <- read.csv("Data/panel_3.csv")
-panel_p <- pdata.frame(panel, index = c("iso3", "year"))
-
+panel_1995 <- panel%>%
+  filter(year <= 1995)
+panel_p <- pdata.frame(panel_1995, index = c("iso3", "year"))
+View(panel_p)
 # Country groups
-
 industrial_countries <- c(
   "AUS","AUT","CAN","DNK","FIN","FRA","GRC","ISL",
   "IRL","ITA","JPN","NLD","NZL","NOR","PRT","ESP",
@@ -25,25 +28,29 @@ developing_countries <- c(
   "TTO","TUN","TUR","UGA","URY","VEN","ZMB","ZWE"
 )
 
+africa <- c(
+  "DZA","BEN","BFA","BDI","CMR","TCD","COG","CIV",
+  "EGY","GAB","GMB","GHA","KEN","MDG","MWI","MLI",
+  "MRT","MAR","NER","NGA","RWA","SEN","SLE","ZAF",
+  "SWZ","TGO","TUN","UGA","ZMB","ZWE"
+)
+
 # Variables
 vars <- c(
   "CAGDP","GOVBGDP","RELY","RELDEPY","RELDEPO",
   "YGRAVG","YGRSD","TOTSD","LREER",
   "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
 )
+
+#replication of table 1 from 1971 to 1995
 # Clean variance decomposition function
 variance_decomp <- function(data, varname) {
-  
   x <- data[[varname]]
-  
   overall <- var(x, na.rm = TRUE)
-  
   country_mean <- ave(x, data$iso3,
                       FUN = function(z) mean(z, na.rm = TRUE))
-  
   within <- var(x - country_mean, na.rm = TRUE)
   between <- overall - within
-  
   tibble(
     Variable = varname,
     Between_pct = 100 * between / overall,
@@ -68,29 +75,14 @@ developing_table <- run_group(
   "Developing"
 )
 
-# Combine if needed
-all_results <- bind_rows(industrial_table, developing_table)
-print(all_results)
 
-# Export to LaTeX
-xtable(
-  industrial_table,
-  caption = "Variance decomposition - Industrial countries"
-)
 
-xtable(
-  developing_table,
-  caption = "Variance decomposition - Developing countries"
-)
-
-# Combine results correctly
-
+# Combine results
 all_results <- bind_rows(industrial_table, developing_table)
 
 # Reshape to one comparative table
 final_table <- all_results %>%
   select(Variable, Group, Between_pct, Within_pct) %>%
-  
   pivot_wider(
     names_from = Group,
     values_from = c(Between_pct, Within_pct)
@@ -104,16 +96,15 @@ final_table <- all_results %>%
     Between_pct_Developing,
     Within_pct_Developing
   )
-
-# Display final table
-
 print(final_table)
 
-# Export to LaTeX (single table)
-library(xtable)
-
-xtable(
-  final_table,
-  caption = "Variance decomposition: Industrial vs Developing countries",
-  label = "tab:variance_decomposition_comparison"
-)
+#replication of table 2
+# Build cross-section (country averages) without intercept 
+ all_countries <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
+ summary(all_countries)
+ View(industrial_countries)
+ industrial <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                    YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + 
+                    ka_open + NSGDP, 
+                  data = panel_p %>% filter(iso3 %in% industrial_countries))
+ summary(industrial)
