@@ -330,8 +330,8 @@ panel4 = panel4 %>%
 panel4 <- panel4 |>
   group_by(iso3) |>
   mutate(
-    na_var1 = sum(is.na(IMFGOVBGDP[year <= 1996 & year >= 1971])),
-    na_var2 = sum(is.na(GOVBGDP[year <= 1996 & year >= 1971])),
+    na_var1 = sum(is.na(IMFGOVBGDP)),
+    na_var2 = sum(is.na(GOVBGDP)),
     CombinedGOVBGDP = ifelse(na_var1 <= na_var2, IMFGOVBGDP, GOVBGDP)
   ) |>
   select(-na_var1, -na_var2) |>
