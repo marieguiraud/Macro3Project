@@ -35,12 +35,20 @@ africa <- c(
   "SWZ","TGO","TUN","UGA","ZMB","ZWE"
 )
 
-# Variables
+all_countries <- c(industrial_countries, developing_countries)
+excluding_africa <- setdiff(all_countries, africa)
+
 vars <- c(
   "CAGDP","GOVBGDP","RELY","RELDEPY","RELDEPO",
   "YGRAVG","YGRSD","TOTSD","LREER",
   "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
 )
+vars2 <- c(
+  "CAGDP","CombinedGOVBGDP","RELY","RELDEPY","RELDEPO",
+  "YGRAVG","YGRSD","CombinedTOTSD","BRREER",
+  "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
+)
+
 
 #replication of table 1 from 1971 to 1995
 # Clean variance decomposition function
@@ -100,15 +108,50 @@ print(final_table)
 
 #replication of table 2
 # Build cross-section (country averages) without intercept 
- all_countries <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
- summary(all_countries)
-
- # Voir exactement combien de lignes complètes selon les variables choisies
- test_clean <- test %>% select(CAGDP, NFAGDP, RELDEPY, RELDEPO, YGRAVG, YGRSD, OPEN, ka_open)
- nrow(na.omit(test_clean))
+ all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
+ summary(all_countries_reg1)
  
- # Régression avec seulement les variables disponibles
- industrial <- lm(CAGDP ~ -1 + NFAGDP + RELDEPY + RELDEPO + 
-                    YGRAVG + YGRSD + OPEN + ka_open, 
-                  data = na.omit(test_clean))
- summary(industrial)
+ #all countries with ne new variables 
+ all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
+ summary(all_countries_reg2)
+ 
+
+ developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                    YGRAVG + YGRSD + CombinedTOTSD + LREER + OPEN + FDEEP + 
+                    ka_open + NSGDP, 
+                  data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
+ summary(developing_reg1)
+ 
+ developing_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                    YGRAVG + YGRSD + TOTSD + BRREER + OPEN + FDEEP + 
+                    ka_open + NSGDP, 
+                  data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
+ summary(developing_reg2)
+ 
+
+excluding_africa_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                   YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + 
+                   ka_open + NSGDP, 
+                 data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
+summary(excluding_africa_reg1)
+
+excluding_africa_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                              YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
+                              ka_open + NSGDP, 
+                            data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
+summary(excluding_africa_reg2)
+
+#table 2 (run when missing value problem is solved) 
+#indutrial countries 
+industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELDEPY + RELDEPO + 
+                   YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
+                   ka_open + NSGDP, 
+                 data = panel_1995[panel_1995$iso3 %in% industrial_countries, ])
+
+summary(industrial)
+
+#check how many NA we have for each variable 
+df <- panel_1995[panel_1995$iso3 %in% developing_countries, ]
+na_report <- sapply(df[, vars2], function(x) sum(is.na(x)))
+na_report
+class(df)
