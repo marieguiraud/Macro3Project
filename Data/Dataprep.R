@@ -384,7 +384,40 @@ panel4 <- panel4 |>
   select(-na_var1, -na_var2) |>
   ungroup()
 
+
+
+###Penn World Tables source for relative income
+
+library(pwt10)
+library(dplyr)
+
+data("pwt10.01")
+
+# GDP per capita = rgdpe (PPP-adjusted) / pop
+df_pwt <- pwt10.01 |>
+  mutate(gdppc_ppp = rgdpe / pop) |>
+  select(country, isocode, year, gdppc_ppp)
+
+# Get US values to compute relative income
+us_gdppc <- df_pwt |>
+  filter(isocode == "USA") |>
+  select(year, us_gdppc = gdppc_ppp)
+
+# Compute relative income (0 to 1], US = 1
+df_rel_income <- df_pwt |>
+  left_join(us_gdppc, by = "year") |>
+  mutate(PennRELY = gdppc_ppp / us_gdppc) |>
+  filter(year >= 1971) |>
+  select(isocode, year, PennRELY) |>
+  filter(!is.na(PennRELY)) %>% 
+  rename(iso3 = isocode) %>% 
+  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1))
+
+panel4 = panel4 %>% 
+  left_join(df_rel_income, by = c("iso3","year"))
+
+
+
+###Compile everything
 colMeans(is.na(panel4))
-
-
 write.csv(panel4,"Data/panel_3.csv")
