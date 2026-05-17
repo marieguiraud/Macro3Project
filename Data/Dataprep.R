@@ -355,10 +355,34 @@ totsdf <- WDI(
     import_deflator = imp_current / imp_constant,
     terms_of_trade  = (export_deflator / import_deflator) * 100
   ) |>
-  select(country, iso3c, year, terms_of_trade) |>
-  filter(!is.na(terms_of_trade))
+  select(iso3c, year, terms_of_trade) |>
+  filter(!is.na(terms_of_trade)) %>% 
+  rename(IndirectTOTS = terms_of_trade) %>% 
+  rename(iso3 = iso3c)
 
+totsdf = totsdf %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(iso3, period) |>
+  summarise(
+    year    = min(year),          # label each period by its first year
+    IndirectTOTS = sd(IndirectTOTS,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period) 
 
+panel4 = panel4 %>% 
+  left_join(totsdf, by = c("iso3","year")) 
+  
+
+panel4 <- panel4 |>
+  group_by(iso3) |>
+  mutate(
+    na_var1 = sum(is.na(TOTSD)),
+    na_var2 = sum(is.na(IndirectTOTS)),
+    CombinedTOTSD = ifelse(na_var1 <= na_var2, TOTSD, IndirectTOTS)
+  ) |>
+  select(-na_var1, -na_var2) |>
+  ungroup()
 
 colMeans(is.na(panel4))
 
