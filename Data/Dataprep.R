@@ -234,19 +234,6 @@ panel4 <- panel_3 %>%
 
 ####Alternative source for LREER
 
-datareer = read.csv("Data/LREER_IMF.csv")
-datareer$iso3 <- countrycode(
-  datareer$COUNTRY,
-  origin = "country.name",
-  destination = "iso3c"
-)
-datareer = datareer %>% 
-  select(c(iso3,TIME_PERIOD,OBS_VALUE)) %>% 
-  rename( year = TIME_PERIOD) %>% 
-  mutate(OBS_VALUE = log(OBS_VALUE)) %>% 
-  rename(IMFLREER = OBS_VALUE) 
-panel4 = panel4 %>% 
-  left_join(datareer, by = c("iso3","year"))
 
 
 ####Introducing Bruegel
@@ -262,7 +249,7 @@ bruegeldf = bruegeldf %>%
     values_to = "BRREER"
   ) %>% 
   mutate(`Country code` = stringr::str_extract(Country, "[A-Z]{2}$")) %>% 
-  left_join(bruegelcorr, by = "Country code") %>% 
+  left_join(bruegelcorr, by = "Country code")
 
   bruegeldf$iso3 <- countrycode(
     bruegeldf$`Country name`,
@@ -274,15 +261,81 @@ bruegeldf = bruegeldf %>%
   select(c(year, iso3,BRREER)) %>% 
   mutate(BRREER = log(BRREER)) %>% 
   mutate(year = as.numeric(year)) %>% 
-  filter(year > 1970)
+  filter(year > 1970) %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(iso3, period) |>
+  summarise(
+    year    = min(year),          # label each period by its first year
+    BRREER = mean(BRREER,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period)
 
 panel4 = panel4 %>% left_join(bruegeldf, by = c("iso3","year"))
 
-  
-  
+
+####Public Finances in Modern History database use
 
   
-  
+public_exp = read_xls("Data/IMF_Expenditure.xls")
+public_rev = read_xls("Data/IMF_Revenue.xls")
+
+public_exp = public_exp %>% 
+  rename(Country = `Government expenditure, percent of GDP (% of GDP)`) %>% 
+  pivot_longer(
+    cols      = -Country,
+    names_to  = "year",
+    values_to = "EXPGDP"
+  ) %>% 
+  filter(year > 1970 ) %>% 
+  filter(EXPGDP != "no data") %>% 
+  mutate(EXPGDP = as.numeric(EXPGDP))
+
+public_rev = public_rev %>% 
+  rename(Country = `Government revenue, percent of GDP (% of GDP)`) %>% 
+  pivot_longer(
+    cols      = -Country,
+    names_to  = "year",
+    values_to = "REVGDP"
+  ) %>% 
+  filter(year > 1970 ) %>% 
+  filter(REVGDP != "no data") %>% 
+  mutate(REVGDP = as.numeric(REVGDP)) 
+
+public_rev = public_rev %>%
+  left_join(public_exp, by = c("Country","year")) %>% 
+  mutate(IMFGOVBGDP = REVGDP-EXPGDP) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(Country, period) |>
+  summarise(
+    year    = min(year),          # label each period by its first year
+    IMFGOVBGDP = mean(IMFGOVBGDP,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period) 
+
+public_rev$iso3 <- countrycode(
+  public_rev$Country,
+  origin = "country.name",
+  destination = "iso3c"
+)  
+
+public_rev = public_rev %>% 
+  select(-Country)
+
+panel4 = panel4 %>% 
+  left_join(public_rev, by = c("iso3","year"))
+
+panel4 <- panel4 |>
+  group_by(iso3) |>
+  mutate(
+    na_var1 = sum(is.na(IMFGOVBGDP[year <= 1996 & year >= 1971])),
+    na_var2 = sum(is.na(GOVBGDP[year <= 1996 & year >= 1971])),
+    CombinedGOVBGDP = ifelse(na_var1 <= na_var2, IMFGOVBGDP, GOVBGDP)
+  ) |>
+  select(-na_var1, -na_var2) |>
+  ungroup()
 
 colMeans(is.na(panel4))
 
