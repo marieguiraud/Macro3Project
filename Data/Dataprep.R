@@ -337,6 +337,29 @@ panel4 <- panel4 |>
   select(-na_var1, -na_var2) |>
   ungroup()
 
+#### TERMS OF TRADE INDIRECT
+
+totsdf <- WDI(
+  indicator = c(
+    exp_current  = "NE.EXP.GNFS.CD",   # Exports current USD
+    exp_constant = "NE.EXP.GNFS.KD",   # Exports constant USD
+    imp_current  = "NE.IMP.GNFS.CD",   # Imports current USD
+    imp_constant = "NE.IMP.GNFS.KD"    # Imports constant USD
+  ),
+  country = "all",
+  start   = 1971,
+  end     = 2026
+) |>
+  mutate(
+    export_deflator = exp_current / exp_constant,
+    import_deflator = imp_current / imp_constant,
+    terms_of_trade  = (export_deflator / import_deflator) * 100
+  ) |>
+  select(country, iso3c, year, terms_of_trade) |>
+  filter(!is.na(terms_of_trade))
+
+
+
 colMeans(is.na(panel4))
 
 
