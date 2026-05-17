@@ -231,4 +231,60 @@ panel_3<- panel_2 %>%
 panel4 <- panel_3 %>% 
   left_join(GovBalance, by = c("iso3","year"))
 
+
+####Alternative source for LREER
+
+datareer = read.csv("Data/LREER_IMF.csv")
+datareer$iso3 <- countrycode(
+  datareer$COUNTRY,
+  origin = "country.name",
+  destination = "iso3c"
+)
+datareer = datareer %>% 
+  select(c(iso3,TIME_PERIOD,OBS_VALUE)) %>% 
+  rename( year = TIME_PERIOD) %>% 
+  mutate(OBS_VALUE = log(OBS_VALUE)) %>% 
+  rename(IMFLREER = OBS_VALUE) 
+panel4 = panel4 %>% 
+  left_join(datareer, by = c("iso3","year"))
+
+
+####Introducing Bruegel
+
+bruegeldf = read_xlsx("Data/Bruegel_REER.xlsx")
+bruegelcorr = read_csv("Data/Bruegel_REER_Correspondance.csv")
+
+bruegeldf = bruegeldf %>% 
+  rename(year = `Updated: 23 October 2025`) %>% 
+  pivot_longer(
+    cols      = -year,
+    names_to  = "Country",
+    values_to = "BRREER"
+  ) %>% 
+  mutate(`Country code` = stringr::str_extract(Country, "[A-Z]{2}$")) %>% 
+  left_join(bruegelcorr, by = "Country code") %>% 
+
+  bruegeldf$iso3 <- countrycode(
+    bruegeldf$`Country name`,
+    origin = "country.name",
+    destination = "iso3c"
+  )  
+
+bruegeldf = bruegeldf %>% 
+  select(c(year, iso3,BRREER)) %>% 
+  mutate(BRREER = log(BRREER)) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  filter(year > 1970)
+
+panel4 = panel4 %>% left_join(bruegeldf, by = c("iso3","year"))
+
+  
+  
+
+  
+  
+
+colMeans(is.na(panel4))
+
+
 write.csv(panel4,"Data/panel_3.csv")
