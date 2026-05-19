@@ -9,7 +9,7 @@ library(zoo)
 panel <- read.csv("Data/panel_3.csv")
 panel_1995 <- panel%>%
   filter(year <= 1995) %>% 
-  mutate(RELY2=RELY^2)
+  mutate(PennRELY2=PennRELY^2)
 panel_p <- pdata.frame(panel_1995, index = c("iso3", "year"))
 View(panel_p)
 # Country groups
@@ -47,11 +47,16 @@ vars <- c(
   "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
 )
 vars2 <- c(
-  "CAGDP","CombinedGOVBGDP","RELY", "RELY2", "RELDEPY","RELDEPO",
+  "CAGDP","CombinedGOVBGDP","PennRELY", "PennRELY2", "RELDEPY","RELDEPO",
   "YGRAVG","YGRSD","CombinedTOTSD","BRREER",
   "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
 )
-
+#PANEL PAPER
+panel_paper <- panel_1995 %>%
+  filter(iso3 %in% all_countries) %>%
+  select(iso3, year, CAGDP, CombinedGOVBGDP, PennRELY, , PennRELY2, RELDEPY, RELDEPO, 
+         YGRAVG, YGRSD, CombinedTOTSD, BRREER, OPEN, FDEEP, NSGDP, ka_open, NFAGDP)
+colSums(is.na(panel_paper))
 
 #replication of table 1 from 1971 to 1995
 # Clean variance decomposition function
@@ -113,7 +118,7 @@ all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY
 summary(all_countries_reg1)
 
 #all countries with ne new variables 
-all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
+all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 summary(all_countries_reg2)
 
 developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
@@ -122,7 +127,7 @@ developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + R
                       data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
 summary(developing_reg1)
 
-developing_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
+developing_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                         YGRAVG + YGRSD + TOTSD + BRREER + OPEN + FDEEP + 
                         ka_open + NSGDP, 
                       data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
@@ -135,7 +140,7 @@ excluding_africa_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDE
                             data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
 summary(excluding_africa_reg1)
 
-excluding_africa_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
+excluding_africa_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                               YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
                               ka_open + NSGDP, 
                             data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
@@ -143,7 +148,7 @@ summary(excluding_africa_reg2)
 
 #table 2 (run when missing value problem is solved) 
 #indutrial countries 
-industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
+industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                    YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
                    ka_open + NSGDP, 
                  data = panel_1995[panel_1995$iso3 %in% industrial_countries, ])
@@ -165,7 +170,7 @@ class(df)
 
 # Table 4 - col 1 : Full sample 
 
-t4_col1_all_countries  <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
+t4_col1_all_countries  <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
             data = panel_1995[panel_1995$iso3 %in% all_countries, ],
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
@@ -173,28 +178,28 @@ t4_col1_all_countries  <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + 
 summary(t4_col1_all_countries) #il n'y a que 56 observations et les pays n'ont que 1 ou 2 observations ...
 
 # Table 4 - col 2 : Full sample excl. Africa
-t4_col2_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
+t4_col2_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
             data = panel_1995[panel_1995$iso3 %in% excluding_africa, ],
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
 summary(t4_col2_excluding_africa)
 
 # Table 4 - col 3 : Industrial
-t4_col3_industrial_countries <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
+t4_col3_industrial_countries <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
             data = panel_1995[panel_1995$iso3 %in% industrial_countries, ],
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
 summary(t4_col3_industrial_countries) #toujours un problème sur les industrials ont a que 9 observations
 
 # Table 4 - col 4 : Developing
-t4_col4_developing_countries <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
+t4_col4_developing_countries <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
             data = panel_1995[panel_1995$iso3 %in% developing_countries, ],
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
 summary(t4_col4_developing_countries)
 
 # Table 4 - col 5 : Developing excl. Africa
-t_4_col5_dev_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
+t_4_col5_dev_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
             data = panel_1995[panel_1995$iso3 %in% dev_excluding_africa, ],
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
@@ -204,113 +209,5 @@ stargazer(t4_col1_all_countries, t4_col2_excluding_africa, t4_col3_industrial_co
           column.labels = c("Full","Full excl. Africa","Industrial","Developing","Dev. excl. Africa"),
           title = "Table 4 — Fixed Effects with time effects")
 
-#PART ON IMPUTATION
-#imputation of NA on mean value of the group. 
 
-
-panel_1995 <- panel_1995 %>%
-  mutate(group = case_when(
-    iso3 %in% industrial_countries ~ "industrial",
-    iso3 %in% africa               ~ "africa",
-    iso3 %in% developing_countries ~ "developing_excl_africa",
-    TRUE ~ NA_character_
-  ))
-colSums(is.na(panel_1995))
-vars_to_impute <- c("CAGDP","GOVBGDP","CombinedGOVBGDP","NFAGDP","RELY", "RELY2", "RELDEPY","RELDEPO",
-                    "YGRAVG","YGRSD","TOTSD","CombinedTOTSD","IndirectTOTS",
-                    "OPEN","FDEEP","ka_open","LREER","BRREER", "NSGDP")
-
-
-# Fonction d'imputation en cascade
-impute_cascade <- function(x) {
-  if (all(is.na(x))) return(x)
-  # 1. Moyenne simple
-  if (!is.na(mean(x, na.rm = TRUE))) {
-    x[is.na(x)] <- mean(x, na.rm = TRUE)
-  }
-  x
-}
-
-panel_imputed <- panel_1995 %>%
-  filter(iso3 %in% all_countries) %>%
-  
-  # Niveau 1 : moyenne groupe × année
-  group_by(group, year) %>%
-  mutate(across(all_of(vars_to_impute),
-                ~ ifelse(!is.finite(.), mean(.[is.finite(.)], na.rm = TRUE), .))) %>%
-  ungroup() %>%
-  
-  # Niveau 2 : moyenne groupe (toutes années)
-  group_by(group) %>%
-  mutate(across(all_of(vars_to_impute),
-                ~ ifelse(!is.finite(.), mean(.[is.finite(.)], na.rm = TRUE), .))) %>%
-  ungroup()
-  
-  
-#Table 2 with imputation
-all_countries_reg2_imp <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_imputed[panel_imputed$iso3 %in% all_countries, ])
-summary(all_countries_reg2_imp)
-
-
-developing_reg2_imp <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
-                        YGRAVG + YGRSD + TOTSD + BRREER + OPEN + FDEEP + 
-                        ka_open + NSGDP, 
-                      data = panel_imputed[panel_imputed$iso3 %in% developing_countries, ])
-summary(developing_reg2_imp)
-
-
-excluding_africa_reg2_imp <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
-                              YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
-                              ka_open + NSGDP, 
-                            data = panel_imputed[panel_imputed$iso3 %in% excluding_africa, ])
-summary(excluding_africa_reg2_imp)
-
-industrial_imp <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
-                   YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
-                   ka_open + NSGDP, 
-                 data = panel_imputed[panel_imputed$iso3 %in% industrial_countries, ])
-
-summary(industrial_imp)
-
-#reproduction table 4 under imputation : 
-# Table 4 - col 1 : Full sample 
-
-t4_col1_all_countries_imp  <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
-                                  data = panel_imputed[panel_imputed$iso3 %in% all_countries, ],
-                                  index = c("iso3", "year"),
-                                  model = "within", effect = "twoways")
-
-summary(t4_col1_all_countries_imp) 
-
-# Table 4 - col 2 : Full sample excl. Africa
-t4_col2_excluding_africa_imp <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
-                                    data = panel_imputed[panel_imputed$iso3 %in% excluding_africa, ],
-                                    index = c("iso3", "year"),
-                                    model = "within", effect = "twoways")
-summary(t4_col2_excluding_africa_imp)
-
-# Table 4 - col 3 : Industrial
-t4_col3_industrial_countries_imp <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
-                                        data = panel_imputed[panel_imputed$iso3 %in% industrial_countries, ],
-                                        index = c("iso3", "year"),
-                                        model = "within", effect = "twoways")
-summary(t4_col3_industrial_countries_imp) #toujours un problème sur les industrials ont a que 9 observations
-
-# Table 4 - col 4 : Developing
-t4_col4_developing_countries_imp <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
-                                        data = panel_imputed[panel_imputed$iso3 %in% developing_countries, ],
-                                        index = c("iso3", "year"),
-                                        model = "within", effect = "twoways")
-summary(t4_col4_developing_countries_imp)
-
-# Table 4 - col 5 : Developing excl. Africa
-t_4_col5_dev_excluding_africa_imp <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
-                                         data = panel_imputed[panel_imputed$iso3 %in% dev_excluding_africa, ],
-                                         index = c("iso3", "year"),
-                                         model = "within", effect = "twoways")
-summary(t_4_col5_dev_excluding_africa_imp)
-
-stargazer(t4_col1_all_countries, t4_col2_excluding_africa, t4_col3_industrial_countries, t4_col4_developing_countries, t_4_col5_dev_excluding_africa, type = "text",
-          column.labels = c("Full","Full excl. Africa","Industrial","Developing","Dev. excl. Africa"),
-          title = "Table 4 — Fixed Effects with time effects")
 
