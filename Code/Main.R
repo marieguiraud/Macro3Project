@@ -258,47 +258,41 @@ stargazer(t4_col1_all_countries, t4_col2_excluding_africa, t4_col3_industrial_co
           column.labels = c("Full","Full excl. Africa","Industrial","Developing","Dev. excl. Africa"),
           title = "Table 4 — Fixed Effects with time effects")
 
-# ── Table 5 ────────────────────────────────────────────────────────────────────
-# IMPORTANT: Table 5 uses ANNUAL data, not 5-year averages.
-# If panel_3.csv already contains annual observations, use it directly below.
-# If not, you need a separate annual dataset file.
+# ── Chargement et nettoyage de la nouvelle base ────────────────────────────────
+fiveYear <- read.csv("Data/5yearPanel.csv")
 
-# Build annual panel
-panel_annual <- panel %>%                        # raw annual data
+fiveYear <- fiveYear %>%
   filter(year <= 1995) %>%
   mutate(
-    PennRELY2    = PennRELY^2,
-    oil_exporter = ifelse(iso3 %in% oil_exporting_countries, 1, 0)
+    # Corrections d'unités
+    NFAGDP          = NFAGDP / 100,        # ajuster selon l'unité dans ce fichier
+    CombinedGOVBGDP = CombinedGOVBGDP / 100,
+    
+    # Variables dérivées
+    oil_exporter = ifelse(iso3 %in% oil_exporting_countries, 1, 0),
+    PennRELY2    = PennRELY^2
   )
 
-# Convert to pdata.frame so lag() and diff() work correctly within panels
-panel_annual_p <- pdata.frame(panel_annual, index = c("iso3", "year"))
+# Convertir en pdata.frame pour les variables retardées
+fiveYear_p <- pdata.frame(fiveYear, index = c("iso3", "year"))
 
-# Create lagged variables explicitly (safer than inline in formula)
-panel_annual_p$CAGDP_lag       <- lag(panel_annual_p$CAGDP, 1)          # lagged CA/GDP
-panel_annual_p$BRREER_diff_lag <- lag(diff(panel_annual_p$BRREER), 1)   # lagged Δ real exchange rate
+# Créer les variables retardées
+fiveYear_p$CAGDP_lag       <- lag(fiveYear_p$CAGDP, 1)
+fiveYear_p$BRREER_diff_lag <- lag(diff(fiveYear_p$BRREER), 1)
 
-# Formula for Table 5
+# ── Formule Table 5 ────────────────────────────────────────────────────────────
 formula_t5 <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
   ka_open + oil_exporter + CAGDP_lag + BRREER_diff_lag + factor(year)
 
-# Col 1: Full sample
-t5_col1 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% all_countries, ])
+# ── Régressions ───────────────────────────────────────────────────────────────
+t5_col1 <- lm(formula_t5, data = fiveYear_p[fiveYear_p$iso3 %in% all_countries, ])
+t5_col2 <- lm(formula_t5, data = fiveYear_p[fiveYear_p$iso3 %in% excluding_africa, ])
+t5_col3 <- lm(formula_t5, data = fiveYear_p[fiveYear_p$iso3 %in% industrial_countries, ])
+t5_col4 <- lm(formula_t5, data = fiveYear_p[fiveYear_p$iso3 %in% developing_countries, ])
+t5_col5 <- lm(formula_t5, data = fiveYear_p[fiveYear_p$iso3 %in% dev_excluding_africa, ])
 
-# Col 2: Full sample excl. Africa
-t5_col2 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% excluding_africa, ])
-
-# Col 3: Industrial countries
-t5_col3 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% industrial_countries, ])
-
-# Col 4: Developing countries
-t5_col4 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% developing_countries, ])
-
-# Col 5: Developing excl. Africa
-t5_col5 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% dev_excluding_africa, ])
-
-# Output with robust SE
+# ── Output ────────────────────────────────────────────────────────────────────
 stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
           type = "text",
           se = list(get_robust_se(t5_col1), get_robust_se(t5_col2),
@@ -309,7 +303,7 @@ stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
           omit.stat   = c("f", "ser"),
           column.labels = c("Full", "Full excl. Africa", "Industrial",
                             "Developing", "Dev. excl. Africa"),
-          title = "Table 5 — OLS annual data with time effects",
+          title = "Table 5 — OLS avec effets temporels",
           dep.var.labels = "Current Account to GDP ratio",
           covariate.labels = c(
             "Govt. budget balance", "NFA to GDP ratio",
@@ -325,3 +319,17 @@ stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
 cor(panel_1995$PennRELY, panel_1995$PennRELY2, use = "complete.obs")
 summary(panel_1995[, c("CombinedGOVBGDP", "NFAGDP", "CAGDP")])
 summary(panel_1995[, c("PennRELY", "PennRELY2", "OPEN", "FDEEP")])
+
+# Vérifie combien d'années restent dans chaque sous-échantillon
+# après suppression des NAs liés à la formule
+vars_t5 <- c("CAGDP", "CombinedGOVBGDP", "NFAGDP", "PennRELY", "PennRELY2",
+             "RELDEPY", "RELDEPO", "FDEEP", "CombinedTOTSD", "YGRAVG", "OPEN",
+             "ka_open", "oil_exporter", "CAGDP_lag", "BRREER_diff_lag", "year")
+for (grp in list(all_countries, excluding_africa, industrial_countries, 
+                 developing_countries, dev_excluding_africa)) {
+  df_sub <- fiveYear_p[fiveYear_p$iso3 %in% grp, vars_t5]
+  df_sub <- df_sub[complete.cases(df_sub), ]
+  cat("Pays:", length(unique(df_sub$iso3)), 
+      "| Années uniques:", length(unique(df_sub$year)),
+      "| Obs:", nrow(df_sub), "\n")
+}
