@@ -438,9 +438,8 @@ df_rel_income <- df_pwt |>
   mutate(PennRELY = gdppc_ppp / us_gdppc) |>
   filter(year >= 1971) |>
   select(isocode, year, PennRELY) |>
-  filter(!is.na(PennRELY)) %>% 
   rename(iso3 = isocode) %>% 
-  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1)) 
+  mutate(PennRELY = ifelse(PennRELY > 1, 1, PennRELY))
   
 yearpanel = yearpanel %>% 
   left_join(totsdf, by = c("iso3", "year"))
@@ -450,7 +449,7 @@ df_rel_income = df_rel_income %>%
   group_by(iso3, period) |>
   summarise(
     year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
-    PennRELY = sd(PennRELY,   na.rm = TRUE),
+    PennRELY = mean(PennRELY,   na.rm = TRUE),
     .groups = "drop"
   ) |>
   select(-period) 
@@ -508,3 +507,5 @@ colMeans(is.na(panel4))
 write.csv(panel4,"Data/panel_3.csv")
 
 write.csv(yearpanel,"Data/AnnualPanel.csv")
+
+
