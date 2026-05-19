@@ -416,7 +416,7 @@ df_rel_income <- df_pwt |>
 panel4 = panel4 %>% 
   left_join(df_rel_income, by = c("iso3","year"))
 
-
+colSums(is.na(panel4))
 
 ###Compile everything
 colMeans(is.na(panel4))
