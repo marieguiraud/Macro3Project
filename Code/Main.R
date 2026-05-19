@@ -3,15 +3,16 @@ library(stargazer)
 library(plm)
 library(xtable)
 library(zoo)
+library(lmtest)
+library(sandwich)
 
 #prelimiaries
 # Data
 panel <- read.csv("Data/panel_3.csv")
 panel_1995 <- panel%>%
   filter(year <= 1995) %>% 
-  mutate(PennRELY2=PennRELY^2)
-panel_p <- pdata.frame(panel_1995, index = c("iso3", "year"))
-View(panel_p)
+  mutate(PennRELY2=PennRELY^2, RELY2 = RELY^2)
+
 # Country groups
 industrial_countries <- c(
   "AUS","AUT","CAN","DNK","FIN","FRA","GRC","ISL",
@@ -45,6 +46,8 @@ oil_exporting_countries <- c(
 
 panel_1995 <- panel_1995 %>%
   mutate(oil_exporter=ifelse(iso3 %in% oil_exporting_countries, 1, 0))
+panel_p <- pdata.frame(panel_1995, index = c("iso3", "year"))
+View(panel_p)
 
 all_countries <- c(industrial_countries, developing_countries)
 excluding_africa <- setdiff(all_countries, africa)
@@ -60,12 +63,6 @@ vars2 <- c(
   "YGRAVG","YGRSD","CombinedTOTSD","BRREER",
   "OPEN","FDEEP","COMBINEDNSGDP","ka_open","NFAGDP", "oil_exporter"
 )
-#PANEL PAPER
-panel_paper <- panel_1995 %>%
-  filter(iso3 %in% all_countries) %>%
-  select(iso3, year, CAGDP, CombinedGOVBGDP, PennRELY, , PennRELY2, RELDEPY, RELDEPO, 
-         YGRAVG, YGRSD, CombinedTOTSD, BRREER, OPEN, FDEEP, COMBINEDNSGDP, ka_open, NFAGDP, oil_exporter)
-colSums(is.na(panel_paper))
 
 #replication of table 1 from 1971 to 1995
 # Clean variance decomposition function
@@ -85,7 +82,7 @@ variance_decomp <- function(data, varname) {
 
 # Apply to group
 run_group <- function(df, name) {
-  map_dfr(vars, ~variance_decomp(df, .x)) %>%
+  map_dfr(vars2, ~variance_decomp(df, .x)) %>%
     mutate(Group = name)
 }
 
@@ -99,8 +96,6 @@ developing_table <- run_group(
   filter(panel_p, iso3 %in% developing_countries),
   "Developing"
 )
-
-
 
 # Combine results
 all_results <- bind_rows(industrial_table, developing_table)
@@ -127,7 +122,7 @@ all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY
 summary(all_countries_reg1)
 
 #all countries with ne new variables 
-all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + oil_exporter, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
+all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 summary(all_countries_reg2)
 
 developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
@@ -165,17 +160,55 @@ industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + 
 summary(industrial)
 
 
+#table 3
+# Helper function for robust standard errors (HC1, as typical in this literature)
+get_robust_se <- function(model) {
+  sqrt(diag(vcovHC(model, type = "HC1")))
+}
 
+# Formula for Table 3
+# Note: factor(year) adds time dummies
+# Note: oil_exporter will be automatically dropped for industrial countries (always 0) → matches the "-" in the paper
+formula_t3 <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
+  RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
+  ka_open + oil_exporter + factor(year)
 
-#check how many NA we have for each variable 
-df <- panel_1995[panel_1995$iso3 %in% developing_countries, ]
-na_report <- sapply(df[, vars2], function(x) sum(is.na(x)))
-na_report
-class(df)
+# Col 1: Full sample
+t3_col1 <- lm(formula_t3, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 
+# Col 2: Full sample excl. Africa
+t3_col2 <- lm(formula_t3, data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
+
+# Col 3: Industrial countries
+t3_col3 <- lm(formula_t3, data = panel_1995[panel_1995$iso3 %in% industrial_countries, ])
+
+# Col 4: Developing countries
+t3_col4 <- lm(formula_t3, data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
+
+# Col 5: Developing excl. Africa
+t3_col5 <- lm(formula_t3, data = panel_1995[panel_1995$iso3 %in% dev_excluding_africa, ])
+
+# Output with robust SE, hiding year dummies from display
+stargazer(t3_col1, t3_col2, t3_col3, t3_col4, t3_col5,
+          type = "text",
+          se = list(get_robust_se(t3_col1), get_robust_se(t3_col2),
+                    get_robust_se(t3_col3), get_robust_se(t3_col4),
+                    get_robust_se(t3_col5)),
+          omit        = "factor",
+          omit.labels = "Time dummies",
+          omit.stat   = c("f", "ser"),
+          column.labels = c("Full", "Full excl. Africa", "Industrial", "Developing", "Dev. excl. Africa"),
+          title = "Table 3 — OLS with time effects",
+          dep.var.labels = "Current Account to GDP ratio",
+          covariate.labels = c(
+            "Govt. budget balance", "NFA to GDP ratio",
+            "Relative income", "Relative income squared",
+            "Rel. dependency (young)", "Rel. dependency (old)",
+            "Financial deepening", "ToT volatility",
+            "Avg. GDP growth", "Openness ratio",
+            "Capital controls", "Oil exporter dummy"
+          ))
 #table 4 
-
-
 
 # Table 4 - col 1 : Full sample 
 
@@ -214,9 +247,81 @@ t_4_col5_dev_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY
             model = "within", effect = "twoways")
 summary(t_4_col5_dev_excluding_africa)
 
+#check how many NA we have for each variable 
+df <- panel_1995[panel_1995$iso3 %in% developing_countries, ]
+na_report <- sapply(df[, vars2], function(x) sum(is.na(x)))
+na_report
+class(df)
+
+# Latex files at the end
 stargazer(t4_col1_all_countries, t4_col2_excluding_africa, t4_col3_industrial_countries, t4_col4_developing_countries, t_4_col5_dev_excluding_africa, type = "text",
           column.labels = c("Full","Full excl. Africa","Industrial","Developing","Dev. excl. Africa"),
           title = "Table 4 — Fixed Effects with time effects")
 
+# ── Table 5 ────────────────────────────────────────────────────────────────────
+# IMPORTANT: Table 5 uses ANNUAL data, not 5-year averages.
+# If panel_3.csv already contains annual observations, use it directly below.
+# If not, you need a separate annual dataset file.
 
+# Build annual panel
+panel_annual <- panel %>%                        # raw annual data
+  filter(year <= 1995) %>%
+  mutate(
+    PennRELY2    = PennRELY^2,
+    oil_exporter = ifelse(iso3 %in% oil_exporting_countries, 1, 0)
+  )
 
+# Convert to pdata.frame so lag() and diff() work correctly within panels
+panel_annual_p <- pdata.frame(panel_annual, index = c("iso3", "year"))
+
+# Create lagged variables explicitly (safer than inline in formula)
+panel_annual_p$CAGDP_lag       <- lag(panel_annual_p$CAGDP, 1)          # lagged CA/GDP
+panel_annual_p$BRREER_diff_lag <- lag(diff(panel_annual_p$BRREER), 1)   # lagged Δ real exchange rate
+
+# Formula for Table 5
+formula_t5 <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
+  RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
+  ka_open + oil_exporter + CAGDP_lag + BRREER_diff_lag + factor(year)
+
+# Col 1: Full sample
+t5_col1 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% all_countries, ])
+
+# Col 2: Full sample excl. Africa
+t5_col2 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% excluding_africa, ])
+
+# Col 3: Industrial countries
+t5_col3 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% industrial_countries, ])
+
+# Col 4: Developing countries
+t5_col4 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% developing_countries, ])
+
+# Col 5: Developing excl. Africa
+t5_col5 <- lm(formula_t5, data = panel_annual_p[panel_annual_p$iso3 %in% dev_excluding_africa, ])
+
+# Output with robust SE
+stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
+          type = "text",
+          se = list(get_robust_se(t5_col1), get_robust_se(t5_col2),
+                    get_robust_se(t5_col3), get_robust_se(t5_col4),
+                    get_robust_se(t5_col5)),
+          omit        = "factor",
+          omit.labels = "Time dummies",
+          omit.stat   = c("f", "ser"),
+          column.labels = c("Full", "Full excl. Africa", "Industrial",
+                            "Developing", "Dev. excl. Africa"),
+          title = "Table 5 — OLS annual data with time effects",
+          dep.var.labels = "Current Account to GDP ratio",
+          covariate.labels = c(
+            "Govt. budget balance", "NFA to GDP ratio",
+            "Relative income", "Relative income squared",
+            "Rel. dependency (young)", "Rel. dependency (old)",
+            "Financial deepening", "ToT volatility",
+            "Avg. GDP growth", "Openness ratio",
+            "Capital controls", "Oil exporter dummy",
+            "Lagged CA to GDP ratio", "Lagged Δ real exchange rate"
+          ))
+
+#check methdological problem for PennRELY2
+cor(panel_1995$PennRELY, panel_1995$PennRELY2, use = "complete.obs")
+summary(panel_1995[, c("CombinedGOVBGDP", "NFAGDP", "CAGDP")])
+summary(panel_1995[, c("PennRELY", "PennRELY2", "OPEN", "FDEEP")])
