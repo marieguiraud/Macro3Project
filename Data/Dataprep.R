@@ -71,6 +71,7 @@ wdi_clean <- wdi_raw |>
 
 
 # ── 3. Collapse to 5-year non-overlapping periods (as in the paper) ─────────
+yearpanel = wdi_clean
 
 panel <- wdi_clean |>
   filter(year >= 1971) |>
@@ -118,6 +119,9 @@ ka_open <- subset(
 #I delete the column country_name and I put iso3 in first column
 ka_open <- ka_open %>%
   select(iso3, everything(), -country_name)
+
+yearpanel = yearpanel %>% 
+  left_join(ka_open, by = c("iso3", "year"))
 
 #I clean for data from 71 to today and i compute a mean for period of 5 years
 ka_open_clean <- ka_open |>
@@ -170,7 +174,8 @@ NFAGDP_clean_2 <- NFAGDP_clean_2 %>%
   rename(year = Year) %>%
   rename(NFAGDP = `net IIP excl gold / GDP domestic currency` )
 
-
+yearpanel = yearpanel %>% 
+  left_join(NFAGDP_clean_2, by = c("iso3", "year"))
 
 ###GOvBalancetoGDP part ! 
 GovBalance = read_xls("Data/IMF_Balance.xls")
@@ -196,6 +201,9 @@ GovBalance = GovBalance %>% select(-`Estimates start after`, -country) |>  # dro
   filter(!is.na(gov_balance))
 
 ### 5 Year Averages
+
+yearpanel = yearpanel %>% 
+  left_join(GovBalance, by = c("iso3", "year"))
 
 GovBalance <- GovBalance |>
   filter(year >= 1971) |>
@@ -261,7 +269,12 @@ bruegeldf = bruegeldf %>%
   select(c(year, iso3,BRREER)) %>% 
   mutate(BRREER = log(BRREER)) %>% 
   mutate(year = as.numeric(year)) %>% 
-  filter(year > 1970) %>% 
+  filter(year > 1970)
+
+yearpanel = yearpanel %>% 
+  left_join(bruegeldf, by = c("iso3", "year"))
+
+bruegeldf = bruegeldf %>% 
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
@@ -305,7 +318,19 @@ public_rev = public_rev %>%
 public_rev = public_rev %>%
   left_join(public_exp, by = c("Country","year")) %>% 
   mutate(IMFGOVBGDP = REVGDP-EXPGDP) %>% 
-  mutate(year = as.numeric(year)) %>% 
+  mutate(year = as.numeric(year))
+
+
+public_rev$iso3 <- countrycode(
+  public_rev$Country,
+  origin = "country.name",
+  destination = "iso3c"
+)  
+  
+yearpanel = yearpanel %>% 
+  left_join(public_rev, by = c("iso3", "year"))
+
+public_rev = public_rev %>%
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(Country, period) |>
   summarise(
@@ -360,6 +385,10 @@ totsdf <- WDI(
   rename(IndirectTOTS = terms_of_trade) %>% 
   rename(iso3 = iso3c)
 
+yearpanel = yearpanel %>% 
+  left_join(totsdf, by = c("iso3", "year"))
+
+
 totsdf = totsdf %>% 
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
@@ -411,7 +440,12 @@ df_rel_income <- df_pwt |>
   select(isocode, year, PennRELY) |>
   filter(!is.na(PennRELY)) %>% 
   rename(iso3 = isocode) %>% 
-  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1)) %>% 
+  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1)) 
+  
+yearpanel = yearpanel %>% 
+  left_join(totsdf, by = c("iso3", "year"))
+
+df_rel_income = df_rel_income %>%  
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
@@ -438,7 +472,12 @@ weosavings$iso3 <- countrycode(
 weosavings = weosavings %>% 
   select(c("iso3","TIME_PERIOD","OBS_VALUE")) %>% 
   rename(year = TIME_PERIOD) %>% 
-  rename(WEONSGDP = OBS_VALUE) %>% 
+  rename(WEONSGDP = OBS_VALUE) 
+
+yearpanel = yearpanel %>% 
+  left_join(weosavings, by = c("iso3", "year"))
+
+weosavings = weosavings %>% 
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
@@ -468,3 +507,4 @@ panel4 <- panel4 |>
 colMeans(is.na(panel4))
 write.csv(panel4,"Data/panel_3.csv")
 
+write.csv(yearpanel,"Data/AnnualPanel.csv")
