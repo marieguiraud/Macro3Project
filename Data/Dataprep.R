@@ -77,7 +77,7 @@ panel <- wdi_clean |>
   mutate(period = (year - 1971) %/% 5) |>
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     CAGDP   = mean(CAGDP,   na.rm = TRUE),
     RELY    = mean(RELY,    na.rm = TRUE),
     RELDEPY = mean(RELDEPY, na.rm = TRUE),
@@ -125,7 +125,7 @@ ka_open_clean <- ka_open |>
   mutate(period = (year - 1971) %/% 5) |>
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     ka_open = mean(ka_open,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -202,7 +202,7 @@ GovBalance <- GovBalance |>
   mutate(period = (year - 1971) %/% 5) |>
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     GOVBGDP = mean(gov_balance,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -217,7 +217,7 @@ NFAGDP_clean_2 <- NFAGDP_clean_2 |>
   mutate(period = (year - 1971) %/% 5) |>
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     NFAGDP = mean(NFAGDP,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -265,7 +265,7 @@ bruegeldf = bruegeldf %>%
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     BRREER = mean(BRREER,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -309,7 +309,7 @@ public_rev = public_rev %>%
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(Country, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     IMFGOVBGDP = mean(IMFGOVBGDP,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -364,7 +364,7 @@ totsdf = totsdf %>%
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
-    year    = min(year),          # label each period by its first year
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
     IndirectTOTS = sd(IndirectTOTS,   na.rm = TRUE),
     .groups = "drop"
   ) |>
@@ -379,7 +379,7 @@ panel4 <- panel4 |>
   mutate(
     na_var1 = sum(is.na(TOTSD)),
     na_var2 = sum(is.na(IndirectTOTS)),
-    CombinedTOTSD = ifelse(na_var1 <= na_var2, TOTSD, IndirectTOTS)
+    CombinedTOTSD = ifelse(na_var1 < na_var2, TOTSD, IndirectTOTS)
   ) |>
   select(-na_var1, -na_var2) |>
   ungroup()
@@ -411,13 +411,60 @@ df_rel_income <- df_pwt |>
   select(isocode, year, PennRELY) |>
   filter(!is.na(PennRELY)) %>% 
   rename(iso3 = isocode) %>% 
-  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1))
+  mutate(PennRELY = pmin(pmax(PennRELY, 0), 1)) %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(iso3, period) |>
+  summarise(
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
+    PennRELY = sd(PennRELY,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period) 
 
 panel4 = panel4 %>% 
   left_join(df_rel_income, by = c("iso3","year"))
 
 
+####WEO Savings
+
+weosavings = read.csv("Data/Savings_WEO.csv")
+
+weosavings$iso3 <- countrycode(
+  weosavings$COUNTRY,
+  origin = "country.name",
+  destination = "iso3c"
+) 
+
+weosavings = weosavings %>% 
+  select(c("iso3","TIME_PERIOD","OBS_VALUE")) %>% 
+  rename(year = TIME_PERIOD) %>% 
+  rename(WEONSGDP = OBS_VALUE) %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(iso3, period) |>
+  summarise(
+    year    = min(year)-((min(year)-1971)%%5),          # label each period by its first year
+    WEONSGDP = sd(WEONSGDP,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period) 
+
+panel4 = panel4 %>% 
+  left_join(weosavings, by = c("iso3","year"))
+  
+  
+###Keep the best savings series
+
+panel4 <- panel4 |>
+  group_by(iso3) |>
+  mutate(
+    na_var1 = sum(is.na(NSGDP[year <= 1995 & year >= 1971])),
+    na_var2 = sum(is.na(WEONSGDP[year <= 1995 & year >= 1971])),
+    COMBINEDNSGDP = ifelse(na_var1 < na_var2, NSGDP, WEONSGDP)
+  ) |>
+  select(-na_var1, -na_var2) |>
+  ungroup()
 
 ###Compile everything
 colMeans(is.na(panel4))
 write.csv(panel4,"Data/panel_3.csv")
+
