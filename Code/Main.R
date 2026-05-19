@@ -37,6 +37,15 @@ africa <- c(
   "SWZ","TGO","TUN","UGA","ZMB","ZWE"
 )
 
+oil_exporting_countries <- c(
+  "DZA", "COG", "GNQ", "IRN", "IRQ", "KWT",
+  "LBY", "NGA", "SAU", "VEN"
+  
+)
+
+panel_1995 <- panel_1995 %>%
+  mutate(oil_exporter=ifelse(iso3 %in% oil_exporting_countries, 1, 0))
+
 all_countries <- c(industrial_countries, developing_countries)
 excluding_africa <- setdiff(all_countries, africa)
 dev_excluding_africa <- setdiff(developing_countries, africa)
@@ -49,13 +58,13 @@ vars <- c(
 vars2 <- c(
   "CAGDP","CombinedGOVBGDP","PennRELY", "PennRELY2", "RELDEPY","RELDEPO",
   "YGRAVG","YGRSD","CombinedTOTSD","BRREER",
-  "OPEN","FDEEP","NSGDP","ka_open","NFAGDP"
+  "OPEN","FDEEP","COMBINEDNSGDP","ka_open","NFAGDP", "oil_exporter"
 )
 #PANEL PAPER
 panel_paper <- panel_1995 %>%
   filter(iso3 %in% all_countries) %>%
   select(iso3, year, CAGDP, CombinedGOVBGDP, PennRELY, , PennRELY2, RELDEPY, RELDEPO, 
-         YGRAVG, YGRSD, CombinedTOTSD, BRREER, OPEN, FDEEP, NSGDP, ka_open, NFAGDP)
+         YGRAVG, YGRSD, CombinedTOTSD, BRREER, OPEN, FDEEP, COMBINEDNSGDP, ka_open, NFAGDP, oil_exporter)
 colSums(is.na(panel_paper))
 
 #replication of table 1 from 1971 to 1995
@@ -118,7 +127,7 @@ all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY
 summary(all_countries_reg1)
 
 #all countries with ne new variables 
-all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
+all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open + oil_exporter, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 summary(all_countries_reg2)
 
 developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
@@ -129,7 +138,7 @@ summary(developing_reg1)
 
 developing_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                         YGRAVG + YGRSD + TOTSD + BRREER + OPEN + FDEEP + 
-                        ka_open + NSGDP, 
+                        ka_open + oil_exporter, 
                       data = panel_1995[panel_1995$iso3 %in% developing_countries, ])
 summary(developing_reg2)
 
@@ -142,7 +151,7 @@ summary(excluding_africa_reg1)
 
 excluding_africa_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                               YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
-                              ka_open + NSGDP, 
+                              ka_open + oil_exporter, 
                             data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
 summary(excluding_africa_reg2)
 
@@ -150,7 +159,7 @@ summary(excluding_africa_reg2)
 #indutrial countries 
 industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                    YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
-                   ka_open + NSGDP, 
+                   ka_open + oil_exporter, 
                  data = panel_1995[panel_1995$iso3 %in% industrial_countries, ])
 
 summary(industrial)
