@@ -442,7 +442,7 @@ df_rel_income <- df_pwt |>
   mutate(PennRELY = ifelse(PennRELY > 1, 1, PennRELY))
   
 yearpanel = yearpanel %>% 
-  left_join(totsdf, by = c("iso3", "year"))
+  left_join(df_rel_income, by = c("iso3", "year"))
 
 df_rel_income = df_rel_income %>%  
   mutate(period = (year - 1971) %/% 5) %>% 
