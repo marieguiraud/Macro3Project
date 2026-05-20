@@ -504,7 +504,7 @@ panel4 <- panel4 |>
 
 ###Compile everything
 colMeans(is.na(panel4))
-write.csv(panel4,"Data/panel_3.csv")
+write.csv(panel4,"Data/5yearPanel.csv")
 
 write.csv(yearpanel,"Data/AnnualPanel.csv")
 
