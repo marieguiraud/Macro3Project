@@ -8,11 +8,13 @@ library(lmtest)
 library(sandwich)
 
 #prelimiaries
+summary(panel_1995)
 # Data
-panel <- read.csv("Data/panel_3.csv")
+panel <- read.csv("Data/5yearPanel.csv")
 panel_1995 <- panel%>%
   filter(year <= 1995) %>% 
   mutate(PennRELY2=PennRELY^2, RELY2 = RELY^2)
+panel_1995$CombinedGOVBGDP[panel_1995$iso3 == "GNQ"] <- NA
 
 # Country groups
 industrial_countries <- c(
@@ -48,7 +50,7 @@ oil_exporting_countries <- c(
 panel_1995 <- panel_1995 %>%
   mutate(oil_exporter=ifelse(iso3 %in% oil_exporting_countries, 1, 0))
 panel_p <- pdata.frame(panel_1995, index = c("iso3", "year"))
-View(panel_p)
+summary(panel_1995)
 
 all_countries <- c(industrial_countries, developing_countries)
 excluding_africa <- setdiff(all_countries, africa)
@@ -320,6 +322,5 @@ stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
             "Capital controls", "Oil exporter dummy",
             "Lagged CA/GDP", "Lagged Δ log REER"
           ))
-
 
 
