@@ -309,7 +309,7 @@ stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
           omit.stat   = c("f", "ser"),
           column.labels = c("Full", "Full excl. Africa", "Industrial",
                             "Developing", "Dev. excl. Africa"),
-          title = "Table 5 — OLS annual data with time effects",
+          title = "Table 5 — OLS annual data between 1971 and 1995 with time effects",
           dep.var.labels = "Current Account to GDP ratio",
           covariate.labels = c(
             "Govt. budget balance", "NFA to GDP ratio",

@@ -211,3 +211,68 @@ t_4_col5_dev_excluding_africa_act <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + Penn
                                      model = "within", effect = "twoways")
 summary(t_4_col5_dev_excluding_africa_act)
 
+#Table 5
+panel_annual <- read.csv("Data/AnnualPanel.csv")   # adjust path as needed
+
+panel_annual_act <- panel_annual %>%
+  filter(year >= 1971) %>%
+  mutate(
+    oil_exporter     = ifelse(iso3 %in% oil_exporting_countries, 1, 0),
+    PennRELY2        = PennRELY^2) %>% 
+  group_by(iso3) %>%
+  mutate(
+    CAGDP_lag       = lag(CAGDP, 1),
+    BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
+  ) %>%
+  ungroup()
+
+# Formula for Table 5
+formula_t5_act <- CAGDP ~ IMFGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
+  RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN +
+  ka_open + oil_exporter +
+  CAGDP_lag + BRREER_diff_lag +
+  factor(year)
+
+# Col 1: Full sample
+t5_col1_act <- lm(formula_t5_act,
+              data = panel_annual_act[panel_annual_act$iso3 %in% all_countries, ])
+summary(t5_col1_act)
+# Col 2: Full sample excl. Africa
+t5_col2_act <- lm(formula_t5_act,
+              data = panel_annual_act[panel_annual_act$iso3 %in% excluding_africa, ])
+summary(t5_col2_act)
+# Col 3: Industrial
+t5_col3_act <- lm(formula_t5_act,
+              data = panel_annual_act[panel_annual_act$iso3 %in% industrial_countries, ])
+summary(t5_col3_act)
+# Col 4: Developing
+t5_col4_act <- lm(formula_t5_act,
+              data = panel_annual_act[panel_annual_act$iso3 %in% developing_countries, ])
+summary(t5_col4_act)
+# Col 5: Developing excl. Africa
+t5_col5_act <- lm(formula_t5_act,
+              data = panel_annual_act[panel_annual_act$iso3 %in% dev_excluding_africa, ])
+summary(t5_col5_act)
+
+# Output with robust SE
+stargazer(t5_col1_act, t5_col2_act, t5_col3_act, t5_col4_act, t5_col5_act,
+          type = "text",
+          se = list(get_robust_se(t5_col1_act), get_robust_se(t5_col2_act),
+                    get_robust_se(t5_col3_act), get_robust_se(t5_col4_act),
+                    get_robust_se(t5_col5_act)),
+          omit        = "factor",
+          omit.labels = "Year dummies",
+          omit.stat   = c("f", "ser"),
+          column.labels = c("Full", "Full excl. Africa", "Industrial",
+                            "Developing", "Dev. excl. Africa"),
+          title = "Table 5 — OLS annual data between 1971 and today with time effects",
+          dep.var.labels = "Current Account to GDP ratio",
+          covariate.labels = c(
+            "Govt. budget balance", "NFA to GDP ratio",
+            "Relative income", "Relative income squared",
+            "Rel. dependency (young)", "Rel. dependency (old)",
+            "Financial deepening", "ToT volatility",
+            "Avg. GDP growth", "Openness ratio",
+            "Capital controls", "Oil exporter dummy",
+            "Lagged CA/GDP", "Lagged Δ log REER"
+          ))
