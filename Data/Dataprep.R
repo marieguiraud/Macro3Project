@@ -439,7 +439,6 @@ df_rel_income <- df_pwt |>
   filter(year >= 1971) |>
   select(isocode, year, PennRELY) |>
   rename(iso3 = isocode) %>% 
-  mutate(PennRELY = ifelse(PennRELY > 1, 1, PennRELY))
   
 yearpanel = yearpanel %>% 
   left_join(df_rel_income, by = c("iso3", "year"))
