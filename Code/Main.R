@@ -254,90 +254,72 @@ na_report <- sapply(df[, vars2], function(x) sum(is.na(x)))
 na_report
 class(df)
 
-# Annual data set for table 5 ────────────────────────────────────────────────────
-annual <- read.csv("Data/AnnualPanel.csv")
+#Table 5
+panel_annual <- read.csv("Data/AnnualPanel.csv")   # adjust path as needed
 
- #preliminary work on RELY 
-# Extraire gdppc depuis PWT
-pwt_data <- as.data.frame(pwt10.0) %>%
-  select(isocode, year, rgdpna, pop) %>%
-  filter(!is.na(rgdpna), !is.na(pop)) %>%
-  mutate(gdppc = rgdpna / pop) %>%
-  rename(iso3 = isocode)
-
-# Construire RELY = gdppc pays / gdppc USA
-pwt_data <- pwt_data %>%
-  group_by(year) %>%
+panel_annual_1995 <- panel_annual %>%
+  filter(year <= 1995) %>%
+  filter(year >= 1971) %>%
   mutate(
-    RELY  = gdppc / gdppc[iso3 == "USA"],
-    RELY2 = RELY^2
-  ) %>%
-  ungroup() %>%
-  select(iso3, year, RELY, RELY2)
+    oil_exporter     = ifelse(iso3 %in% oil_exporting_countries, 1, 0),
+    PennRELY2        = PennRELY^2) %>% 
+     group_by(iso3) %>%
+     mutate(
+       CAGDP_lag       = lag(CAGDP, 1),
+       BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
+     ) %>%
+     ungroup()
 
-# Retirer l'ancienne RELY et merger la nouvelle
-annual <- annual %>%
-  select(-RELY, -RELY2) %>%
-  left_join(pwt_data, by = c("iso3", "year"))
+# Formula for Table 5
+formula_t5 <- CAGDP ~ IMFGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
+  RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN +
+  ka_open + oil_exporter +
+  CAGDP_lag + BRREER_diff_lag +
+  factor(year)
 
-# Vérifier la couverture
-cat("NAs dans RELY après merge:", sum(is.na(annual$RELY[annual$iso3 %in% all_countries])), "\n")
+# Col 1: Full sample
+t5_col1 <- lm(formula_t5,
+              data = panel_annual_1995[panel_annual_1995$iso3 %in% all_countries, ])
+summary(t5_col1)
+# Col 2: Full sample excl. Africa
+t5_col2 <- lm(formula_t5,
+              data = panel_annual_1995[panel_annual_1995$iso3 %in% excluding_africa, ])
+summary(t5_col2)
+# Col 3: Industrial
+t5_col3 <- lm(formula_t5,
+              data = panel_annual_1995[panel_annual_1995$iso3 %in% industrial_countries, ])
+summary(t5_col3)
+# Col 4: Developing
+t5_col4 <- lm(formula_t5,
+              data = panel_annual_1995[panel_annual_1995$iso3 %in% developing_countries, ])
+summary(t5_col4)
+# Col 5: Developing excl. Africa
+t5_col5 <- lm(formula_t5,
+              data = panel_annual_1995[panel_annual_1995$iso3 %in% dev_excluding_africa, ])
+summary(t5_col5)
 
-df <- annual[annual$iso3 %in% all_countries, vars_test1]
-df <- df[complete.cases(df), ]
-cat("Années:", length(unique(df$year)),
-    "| Pays:", length(unique(df$iso3)),
-    "| Obs:", nrow(df), "\n")
-
-# Recréer annual_p avec la RELY corrigée
-annual <- annual %>%
-  arrange(iso3, year) %>%
-  group_by(iso3) %>%
-  mutate(
-    CAGDP_lag       = lag(CAGDP, 1),
-    BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
-  ) %>%
-  ungroup()
-
-annual_p <- pdata.frame(annual, index = c("iso3", "year"))
-
-# Régressions
-t5_col1 <- lm(formula_t5, data = droplevels(annual_p[annual_p$iso3 %in% all_countries, ]))
-t5_col2 <- lm(formula_t5, data = droplevels(annual_p[annual_p$iso3 %in% excluding_africa, ]))
-t5_col3 <- lm(formula_t5, data = droplevels(annual_p[annual_p$iso3 %in% industrial_countries, ]))
-t5_col4 <- lm(formula_t5, data = droplevels(annual_p[annual_p$iso3 %in% developing_countries, ]))
-t5_col5 <- lm(formula_t5, data = droplevels(annual_p[annual_p$iso3 %in% dev_excluding_africa, ]))
-
-# ── Output Table 5 ─────────────────────────────────────────────────────────────
+# Output with robust SE
 stargazer(t5_col1, t5_col2, t5_col3, t5_col4, t5_col5,
           type = "text",
           se = list(get_robust_se(t5_col1), get_robust_se(t5_col2),
                     get_robust_se(t5_col3), get_robust_se(t5_col4),
                     get_robust_se(t5_col5)),
           omit        = "factor",
-          omit.labels = "Time dummies",
+          omit.labels = "Year dummies",
           omit.stat   = c("f", "ser"),
           column.labels = c("Full", "Full excl. Africa", "Industrial",
                             "Developing", "Dev. excl. Africa"),
-          title = "Table 5 — OLS données annuelles avec effets temporels",
+          title = "Table 5 — OLS annual data with time effects",
           dep.var.labels = "Current Account to GDP ratio",
           covariate.labels = c(
             "Govt. budget balance", "NFA to GDP ratio",
             "Relative income", "Relative income squared",
             "Rel. dependency (young)", "Rel. dependency (old)",
-            "Financial deepening", "Avg. GDP growth", "Openness ratio",
+            "Financial deepening", "ToT volatility",
+            "Avg. GDP growth", "Openness ratio",
             "Capital controls", "Oil exporter dummy",
-            "Lagged CA to GDP ratio", "Lagged Δ real exchange rate"  # ← pas de virgule ici
-          ),
-          add.lines = list(
-            c("Time dummies", "Yes", "Yes", "Yes", "Yes", "Yes")
-          ),
-          digits = 4)
+            "Lagged CA/GDP", "Lagged Δ log REER"
+          ))
 
-# ── Diagnostic final : comparer observations avec le papier ───────────────────
-cat("Observations par colonne :\n")
-cat("Col1 (Full)             :", nobs(t5_col1), "| Papier: 1469\n")
-cat("Col2 (Excl. Africa)     :", nobs(t5_col2), "| Papier: 1081\n")
-cat("Col3 (Industrial)       :", nobs(t5_col3), "| Papier:  378\n")
-cat("Col4 (Developing)       :", nobs(t5_col4), "| Papier: 1091\n")
-cat("Col5 (Dev. excl. Africa):", nobs(t5_col5), "| Papier:  703\n")
+
+
