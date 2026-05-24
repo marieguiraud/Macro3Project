@@ -9,7 +9,7 @@ library(sandwich)
 
 #prelimiaries
 # Data
-panel <- read.csv("Data/panel_3.csv")
+panel <- read.csv("Data/5yearPanel.csv")
 panel_1995 <- panel%>%
   filter(year <= 1995) %>% 
   mutate(PennRELY2=PennRELY^2, RELY2 = RELY^2)
