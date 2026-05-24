@@ -438,7 +438,7 @@ df_rel_income <- df_pwt |>
   mutate(PennRELY = gdppc_ppp / us_gdppc) |>
   filter(year >= 1971) |>
   select(isocode, year, PennRELY) |>
-  rename(iso3 = isocode) %>% 
+  rename(iso3 = isocode)
   
 yearpanel = yearpanel %>% 
   left_join(df_rel_income, by = c("iso3", "year"))
@@ -479,8 +479,8 @@ weosavings = weosavings %>%
   mutate(period = (year - 1971) %/% 5) %>% 
   group_by(iso3, period) |>
   summarise(
-    year    = min(year)-((min(year)-1971)%%5),          # label each period by its first year
-    WEONSGDP = sd(WEONSGDP,   na.rm = TRUE),
+    year    = min(year)-((min(year)-1971)%%5),  
+    WEONSGDP = mean(WEONSGDP,   na.rm = TRUE),# label each period by its first year
     .groups = "drop"
   ) |>
   select(-period) 
@@ -501,9 +501,42 @@ panel4 <- panel4 |>
   select(-na_var1, -na_var2) |>
   ungroup()
 
+
+####Add gross flows
+gross_flows =  read_dta("Data/bdes_jme2013-dataset_0.dta")
+
+gross_flows = gross_flows %>% 
+  select(ccode,year,COD,NET,TOT) %>% 
+  filter(year > 1970) %>% 
+  rename(iso3 = ccode) %>% 
+  rename(OutflowsGDP = COD) %>% 
+  rename(InflowsGDP = NET) %>% 
+  rename(GrossFlows = TOT)
+
+
+yearpanel = yearpanel %>% 
+  left_join(gross_flows, by = c("iso3","year"))
+
+gross_flows = gross_flows %>% 
+  mutate(period = (year - 1971) %/% 5) %>% 
+  group_by(iso3, period) |>
+  summarise(
+    year = min(year)-((min(year)-1971)%%5),          # label each period by its first year
+    OutflowsGDP = mean(OutflowsGDP,   na.rm = TRUE),
+    InflowsGDP = mean(InflowsGDP,   na.rm = TRUE),
+    GrossFlows = mean(GrossFlows,   na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  select(-period)   
+
+panel4 = panel4 %>% 
+  left_join(gross_flows, by = c("iso3","year"))
+
+
 ###Compile everything
 colMeans(is.na(panel4))
 write.csv(panel4,"Data/5yearPanel.csv")
+
 
 write.csv(yearpanel,"Data/AnnualPanel.csv")
 
