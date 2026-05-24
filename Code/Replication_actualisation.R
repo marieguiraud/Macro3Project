@@ -150,21 +150,21 @@ get_robust_se <- function(model) {
   sqrt(diag(vcovHC(model, type = "HC1")))
 }
 
-formula_t3 <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
+formula_t3_act <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
   ka_open + oil_exporter + factor(year)
 
-t3_col1 <- lm(formula_t3, data = panel_actualisation[panel_actualisation$iso3 %in% all_countries, ])
-t3_col2 <- lm(formula_t3, data = panel_actualisation[panel_actualisation$iso3 %in% excluding_africa, ])
-t3_col3 <- lm(formula_t3, data = panel_actualisation[panel_actualisation$iso3 %in% industrial_countries, ])
-t3_col4 <- lm(formula_t3, data = panel_actualisation[panel_actualisation$iso3 %in% developing_countries, ])
-t3_col5 <- lm(formula_t3, data = panel_actualisation[panel_actualisation$iso3 %in% dev_excluding_africa, ])
+t3_col1_act <- lm(formula_t3_act, data = panel_actualisation[panel_actualisation$iso3 %in% all_countries, ])
+t3_col2_act <- lm(formula_t3_act, data = panel_actualisation[panel_actualisation$iso3 %in% excluding_africa, ])
+t3_col3_act <- lm(formula_t3_act, data = panel_actualisation[panel_actualisation$iso3 %in% industrial_countries, ])
+t3_col4_act <- lm(formula_t3_act, data = panel_actualisation[panel_actualisation$iso3 %in% developing_countries, ])
+t3_col5_act <- lm(formula_t3_act, data = panel_actualisation[panel_actualisation$iso3 %in% dev_excluding_africa, ])
 
-stargazer(t3_col1, t3_col2, t3_col3, t3_col4, t3_col5,
+stargazer(t3_col1_act, t3_col2_act, t3_col3_act, t3_col4_act, t3_col5_act,
           type = "text",
-          se = list(get_robust_se(t3_col1), get_robust_se(t3_col2),
-                    get_robust_se(t3_col3), get_robust_se(t3_col4),
-                    get_robust_se(t3_col5)),
+          se = list(get_robust_se(t3_col1_act), get_robust_se(t3_col2_act),
+                    get_robust_se(t3_col3_act), get_robust_se(t3_col4_act),
+                    get_robust_se(t3_col5_act)),
           omit        = "factor",
           omit.labels = "Time dummies",
           omit.stat   = c("f", "ser"),
@@ -210,6 +210,7 @@ t_4_col5_dev_excluding_africa_act <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + Penn
                                      index = c("iso3", "year"),
                                      model = "within", effect = "twoways")
 summary(t_4_col5_dev_excluding_africa_act)
+
 
 #Table 5
 panel_annual <- read.csv("Data/AnnualPanel.csv")   # adjust path as needed
@@ -276,3 +277,6 @@ stargazer(t5_col1_act, t5_col2_act, t5_col3_act, t5_col4_act, t5_col5_act,
             "Capital controls", "Oil exporter dummy",
             "Lagged CA/GDP", "Lagged Δ log REER"
           ))
+
+
+
