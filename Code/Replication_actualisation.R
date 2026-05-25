@@ -436,8 +436,120 @@ panel_annual_crisis <- panel_annual %>%
     crisis_gfc   = ifelse(year %in% c(2008, 2009), 1, 0),
     crisis_any   = ifelse(crisis_asian == 1 | crisis_arg == 1 |
                             crisis_gfc == 1, 1, 0),
+    post_asian = ifelse(iso3 %in% c("THA","KOR","IDN","MYS","PHL") &
+                          year %in% c(1999, 2000), 1, 0),
     post_gfc_dummy = ifelse(year >= 2008, 1, 0)
   )
+
+#regressions: 
+m_crisis_all <- lm(
+  CAGDP ~
+    IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    factor(year),
+  data = panel_annual_crisis[
+    panel_annual_crisis$iso3 %in% all_countries, ]
+)
+m_crisis_all_excl_af <-lm(
+  CAGDP ~
+    IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    factor(year),
+  data = panel_annual_crisis[
+    panel_annual_crisis$iso3 %in% excluding_africa, ]
+)
+m_crisis_industrial<- lm(
+  CAGDP ~
+    IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    factor(year),
+  data = panel_annual_crisis[
+    panel_annual_crisis$iso3 %in% industrial_countries, ]
+)
+m_crisis_dev <- lm(
+  CAGDP ~
+    IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    factor(year),
+  data = panel_annual_crisis[
+    panel_annual_crisis$iso3 %in% developing_countries, ]
+)
+m_crisis_dev_excl<-lm(
+  CAGDP ~
+    IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    factor(year),
+  data = panel_annual_crisis[
+    panel_annual_crisis$iso3 %in% dev_excluding_africa, ]
+)
+
+stargazer(
+  m_crisis_all, 
+  m_crisis_all_excl_af, 
+  m_crisis_industrial, 
+  m_crisis_dev, 
+  m_crisis_dev_excl,
+  
+  type = "text",
+  title = "Regression Results: Impact of Crises on CAGDP",
+  column.labels = c("All", "Excl. Africa", "Industrial", "Developing", "Dev. Excl. Africa"),
+  dep.var.labels = "Current Account Balance / GDP (CAGDP)",
+  
+  keep = c(
+    "^IMFGOVBGDP$",
+    "^crisis_any$",
+    "^NFAGDP$",
+    "^PennRELY$",
+    "^PennRELY2$",
+    "^RELDEPY$",
+    "^RELDEPO$",
+    "^FDEEP$",
+    "^IndirectTOTS$",
+    "^gdpgr$",
+    "^OPEN$",
+    "^ka_open$",
+    "^oil_exporter$",
+    "^CAGDP_lag$",
+    "^BRREER_diff_lag$",
+    "^IMFGOVBGDP:crisis_any$",
+    "^crisis_any:NFAGDP$"
+  ),
+  
+  covariate.labels = c(
+    "GOVBGDP (% of GDP)",
+    "Crisis Dummy (Any)",
+    "NFA (% of GDP)",
+    "Relative Income (Penn)",
+    "Relative Income Squared (Penn)",
+    "Relative Dependency Ratio (Young)",
+    "Relative Dependency Ratio (Old)",
+    "Financial Depth",
+    "Terms of Trade",
+    "GDP Growth",
+    "Trade Openness",
+    "Financial Openness (ka_open)",
+    "Oil Exporter Dummy",
+    "Lagged CAGDP",
+    "Lagged REER Diff (BRREER)",
+    "IMF x Crisis",
+    "NFA x Crisis"
+  ),
+  
+  omit = "factor\\(year\\)",
+  omit.labels = "Year Fixed Effects",
+  omit.yes.no = c("Yes", "No"),
+  
+  intercept.bottom = FALSE,
+  intercept.top = TRUE,
+  keep.stat = c("n", "rsq", "adj.rsq"),
+  digits = 3,
+  star.cutoffs = c(0.1, 0.05, 0.01)
+)
 
 #event study to grephically understand the changement in CA around crisis. 
 
@@ -464,9 +576,9 @@ p_asian <- ggplot(es_asian, aes(x = event_time, y = mean_CA)) +
   geom_point(size = 2) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
   geom_hline(yintercept = 0, linewidth = 0.3) +
-  labs(title = "Crise asiatique (1997)",
-       x = "Années autour de la crise",
-       y = "CA/GDP moyen") +
+  labs(title = "The Asian crisis (1997)",
+       x = "years around the crisis",
+       y = "average CA/GDP") +
   theme_bw(base_size = 10)
 
 p_arg <- ggplot(es_arg, aes(x = event_time, y = mean_CA)) +
@@ -474,14 +586,14 @@ p_arg <- ggplot(es_arg, aes(x = event_time, y = mean_CA)) +
   geom_point(size = 2) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
   geom_hline(yintercept = 0, linewidth = 0.3) +
-  labs(title = "Crise argentine (2001)",
-       x = "Années autour de la crise",
-       y = "CA/GDP moyen") +
+  labs(title = "The Argentine crisis (2001)",
+       x = "years around the crisis",
+       y = "average CA/GDP") +
   theme_bw(base_size = 10)
 
-# Afficher les trois côte à côte
+# To print both table
 p_asian + p_arg +
-  plot_annotation(title = "Event study — adjustement of CA for asian and argentine's crisis")
+  plot_annotation(title = "Event study, adjustement of CA for asian and argentine's crises")
 
 # Graphics to understand the necessity to add a crisis dummy 
 # GFC — all countries
@@ -520,9 +632,9 @@ ggplot(es_gfc_combined, aes(x = event_time, y = mean_CA,
   geom_point(size = 2) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
   geom_hline(yintercept = 0, linewidth = 0.3) +
-  labs(title = "GFC (2008) — Ajustement du CA par groupe de pays",
-       x = "Années autour de la crise",
-       y = "CA/GDP moyen",
+  labs(title = "GFC (2008) — adjustment of the CA / GDP by group of countries",
+       x = "years around the crisis",
+       y = "average CA/GDP",
        color = NULL, shape = NULL) +
   theme_bw(base_size = 10) +
   theme(legend.position = "bottom")
