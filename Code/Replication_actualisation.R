@@ -445,7 +445,7 @@ m_crisis_all <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    oil_exporter + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% all_countries, ]
@@ -454,7 +454,7 @@ m_crisis_all_excl_af <-lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    oil_exporter + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% excluding_africa, ]
@@ -463,7 +463,7 @@ m_crisis_industrial<- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    oil_exporter + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% industrial_countries, ]
@@ -472,17 +472,15 @@ m_crisis_dev <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + CAGDP_lag + BRREER_diff_lag +
+    oil_exporter + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% developing_countries, ]
 )
-m_crisis_dev_excl<-lm(
+m_crisis_dev_excl <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
-    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + CAGDP_lag + BRREER_diff_lag +
-    factor(year),
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open + BRREER_diff_lag, 
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% dev_excluding_africa, ]
 )
@@ -490,67 +488,18 @@ m_crisis_dev_excl<-lm(
 stargazer(
   m_crisis_all, 
   m_crisis_all_excl_af, 
-  m_crisis_industrial, 
-  m_crisis_dev, 
-  m_crisis_dev_excl,
-  
-  type = "text",
-  title = "Regression Results: Impact of Crises on CAGDP",
-  column.labels = c("All", "Excl. Africa", "Industrial", "Developing", "Dev. Excl. Africa"),
-  dep.var.labels = "Current Account Balance / GDP (CAGDP)",
-  
-  keep = c(
-    "^IMFGOVBGDP$",
-    "^crisis_any$",
-    "^NFAGDP$",
-    "^PennRELY$",
-    "^PennRELY2$",
-    "^RELDEPY$",
-    "^RELDEPO$",
-    "^FDEEP$",
-    "^IndirectTOTS$",
-    "^gdpgr$",
-    "^OPEN$",
-    "^ka_open$",
-    "^oil_exporter$",
-    "^CAGDP_lag$",
-    "^BRREER_diff_lag$",
-    "^IMFGOVBGDP:crisis_any$",
-    "^crisis_any:NFAGDP$"
-  ),
-  
-  covariate.labels = c(
-    "GOVBGDP (% of GDP)",
-    "Crisis Dummy (Any)",
-    "NFA (% of GDP)",
-    "Relative Income (Penn)",
-    "Relative Income Squared (Penn)",
-    "Relative Dependency Ratio (Young)",
-    "Relative Dependency Ratio (Old)",
-    "Financial Depth",
-    "Terms of Trade",
-    "GDP Growth",
-    "Trade Openness",
-    "Financial Openness (ka_open)",
-    "Oil Exporter Dummy",
-    "Lagged CAGDP",
-    "Lagged REER Diff (BRREER)",
-    "IMF x Crisis",
-    "NFA x Crisis"
-  ),
-  
-  omit = "factor\\(year\\)",
-  omit.labels = "Year Fixed Effects",
-  omit.yes.no = c("Yes", "No"),
-  
-  intercept.bottom = FALSE,
-  intercept.top = TRUE,
-  keep.stat = c("n", "rsq", "adj.rsq"),
-  digits = 3,
-  star.cutoffs = c(0.1, 0.05, 0.01)
+  type = "text"
 )
 
-#event study to grephically understand the changement in CA around crisis. 
+stargazer(
+  m_crisis_dev,
+  m_crisis_industrial, 
+  type = "text"
+)
+
+
+
+#event study to grephically understand the moves in CA around crisis. 
 
 # ── EVENT STUDY ──────────────────────────────────────────────
 
@@ -637,3 +586,29 @@ ggplot(es_gfc_combined, aes(x = event_time, y = mean_CA,
        color = NULL, shape = NULL) +
   theme_bw(base_size = 10) +
   theme(legend.position = "bottom")
+
+
+####Logit on crisis !!
+
+library(fixest)
+
+# Logit poolé avec FE temporels
+AsianModel <- feglm(
+  crisis_asian ~ InflowsGDP + OutflowsGDP + NFAGDP + 
+    PennRELY + gov_balance + NSGDP | year,  # FE temporels après le |
+  data = panel_annual_crisis,
+  family = binomial(link = "logit")
+)
+
+etable(AsianModel, tex = FALSE)
+
+ArgModel <- feglm(
+  crisis_arg ~ GrossFlows + CAGDP + NFAGDP + 
+    PennRELY + gov_balance + WEONSGDP | year,  # FE temporels après le |
+  data = panel_annual_crisis,
+  family = binomial(link = "logit")
+)
+
+etable(ArgModel, tex = FALSE)
+
+
