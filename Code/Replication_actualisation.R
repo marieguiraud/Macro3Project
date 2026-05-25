@@ -48,7 +48,6 @@ oil_exporting_countries <- c(
 panel_actualisation <- panel_actualisation %>%
   mutate(oil_exporter=ifelse(iso3 %in% oil_exporting_countries, 1, 0))
 panel_p_act <- pdata.frame(panel_actualisation, index = c("iso3", "year"))
-View(panel_p_act)
 
 all_countries <- c(industrial_countries, developing_countries)
 excluding_africa <- setdiff(all_countries, africa)
