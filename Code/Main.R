@@ -119,7 +119,42 @@ final_table <- all_results %>%
     Between_pct_Developing,
     Within_pct_Developing
   )
+
 print(final_table)
+
+table1_latex <- final_table %>%
+  select(
+    Variable,
+    Between_pct_Industrial,
+    Within_pct_Industrial,
+    Between_pct_Developing,
+    Within_pct_Developing
+  )
+
+colnames(table1_latex) <- c(
+  "Variable",
+  "Across (Industrial)",
+  "Over time (Industrial)",
+  "Across (Developing)",
+  "Over time (Developing)"
+)
+
+tab1 <- xtable(
+  table1_latex,
+  digits = 2,
+  caption = "Decomposition of variance into cross-section and time-series components (in percent)",
+  label = "tab:table1"
+)
+
+print(
+  tab1,
+  type = "latex",
+  include.rownames = FALSE,
+  file = "Tables/table1.tex",
+  booktabs = TRUE
+)
+
+#Table 2 
 
 all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
 summary(all_countries_reg1)
@@ -127,6 +162,7 @@ summary(all_countries_reg1)
 #all countries with new new variables 
 all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 summary(all_countries_reg2)
+
 
 developing_reg1 <- lm(CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + 
                         YGRAVG + YGRSD + CombinedTOTSD + LREER + OPEN + FDEEP + 
@@ -172,6 +208,88 @@ dev_excluding_africa_reg2 <- lm(
 
 summary(dev_excluding_africa_reg2)
 
+stargazer(
+  all_countries_reg2,
+  excluding_africa_reg2,
+  industrial,
+  
+  type = "text",
+  
+  se = list(
+    get_robust_se(all_countries_reg2),
+    get_robust_se(excluding_africa_reg2),
+    get_robust_se(industrial)
+  ),
+  
+  omit.stat = c("f", "ser"),
+  
+  column.labels = c(
+    "Full sample",
+    "Full excl. Africa",
+    "Industrial"
+  ),
+  
+  title = "Table 2A — Cross-section regressions (current account to GDP ratio)",
+  
+  dep.var.labels = "Current account to GDP ratio",
+  
+  covariate.labels = c(
+    "Govt. budget balance",
+    "NFA to GDP ratio",
+    "Relative income",
+    "Relative income squared",
+    "Rel. dependency (young)",
+    "Rel. dependency (old)",
+    "GDP growth",
+    "GDP growth volatility",
+    "Terms of trade volatility",
+    "Real exchange rate",
+    "Trade openness",
+    "Financial deepening",
+    "Capital account openness",
+    "Oil exporter dummy"
+  )
+)
+
+stargazer(
+  developing_reg2,
+  dev_excluding_africa_reg2,
+  
+  type = "text",
+  
+  se = list(
+    get_robust_se(developing_reg2),
+    get_robust_se(dev_excluding_africa_reg2)
+  ),
+  
+  omit.stat = c("f", "ser"),
+  
+  column.labels = c(
+    "Developing",
+    "Dev. excl. Africa"
+  ),
+  
+  title = "Table 2B — Cross-section regressions (developing countries)",
+  
+  dep.var.labels = "Current account to GDP ratio",
+  
+  covariate.labels = c(
+    "Govt. budget balance",
+    "NFA to GDP ratio",
+    "Relative income",
+    "Relative income squared",
+    "Rel. dependency (young)",
+    "Rel. dependency (old)",
+    "GDP growth",
+    "GDP growth volatility",
+    "Terms of trade volatility",
+    "Real exchange rate",
+    "Trade openness",
+    "Financial deepening",
+    "Capital account openness",
+    "Oil exporter dummy"
+  )
+)
 #table 3
 # Helper function for robust standard errors (HC1, as typical in this literature)
 get_robust_se <- function(model) {
@@ -257,6 +375,77 @@ t_4_col5_dev_excluding_africa <- plm(CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY
             index = c("iso3", "year"),
             model = "within", effect = "twoways")
 summary(t_4_col5_dev_excluding_africa)
+
+stargazer(
+  t4_col1_all_countries,
+  t4_col2_excluding_africa,
+  t4_col3_industrial_countries,
+  
+  type = "text",
+  
+  se = list(
+    get_robust_se(t4_col1_all_countries),
+    get_robust_se(t4_col2_excluding_africa),
+    get_robust_se(t4_col3_industrial_countries)
+  ),
+  
+  omit.stat = c("f", "ser"),
+  
+  column.labels = c(
+    "Full sample",
+    "Full excl. Africa",
+    "Industrial"
+  ),
+  
+  title = "Table 4A — Fixed effects panel regressions",
+  
+  dep.var.labels = "Current account to GDP ratio",
+  
+  covariate.labels = c(
+    "Govt. budget balance",
+    "NFA to GDP ratio",
+    "Relative income",
+    "Relative income squared",
+    "Rel. dependency (young)",
+    "Rel. dependency (old)",
+    "Financial deepening",
+    "Capital account openness"
+  )
+)
+
+stargazer(
+  t4_col4_developing_countries,
+  t_4_col5_dev_excluding_africa,
+  
+  type = "text",
+  
+  se = list(
+    get_robust_se(t4_col4_developing_countries),
+    get_robust_se(t_4_col5_dev_excluding_africa)
+  ),
+  
+  omit.stat = c("f", "ser"),
+  
+  column.labels = c(
+    "Developing",
+    "Dev. excl. Africa"
+  ),
+  
+  title = "Table 4B — Fixed effects panel regressions (developing countries)",
+  
+  dep.var.labels = "Current account to GDP ratio",
+  
+  covariate.labels = c(
+    "Govt. budget balance",
+    "NFA to GDP ratio",
+    "Relative income",
+    "Relative income squared",
+    "Rel. dependency (young)",
+    "Rel. dependency (old)",
+    "Financial deepening",
+    "Capital account openness"
+  )
+)
 
 #check how many NA we have for each variable 
 df <- panel_1995[panel_1995$iso3 %in% developing_countries, ]
