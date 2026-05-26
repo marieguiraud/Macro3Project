@@ -298,7 +298,6 @@ t3_col4_gr <- lm(formula_t3_gr, data = panel_actualisation[panel_actualisation$i
 t3_col5_gr <- lm(formula_t3_gr, data = panel_actualisation[panel_actualisation$iso3 %in% dev_excluding_africa, ])
 
 stargazer(t3_col1_gr, t3_col2_gr, t3_col3_gr, t3_col4_gr, t3_col5_gr,
-          type = "text",
           se = list(get_robust_se(t3_col1_gr), get_robust_se(t3_col2_gr),
                     get_robust_se(t3_col3_gr), get_robust_se(t3_col4_gr),
                     get_robust_se(t3_col5_gr)),
@@ -366,7 +365,6 @@ t3_col4_in <- lm(formula_t3_in, data = panel_actualisation[panel_actualisation$i
 t3_col5_in <- lm(formula_t3_in, data = panel_actualisation[panel_actualisation$iso3 %in% dev_excluding_africa, ])
 
 stargazer(t3_col1_in, t3_col2_in, t3_col3_in, t3_col4_in, t3_col5_in,
-          type = "text",
           se = list(get_robust_se(t3_col1_in), get_robust_se(t3_col2_in),
                     get_robust_se(t3_col3_in), get_robust_se(t3_col4_in),
                     get_robust_se(t3_col5_in)),
@@ -396,7 +394,6 @@ t3_col4_out <- lm(formula_t3_out, data = panel_actualisation[panel_actualisation
 t3_col5_out <- lm(formula_t3_out, data = panel_actualisation[panel_actualisation$iso3 %in% dev_excluding_africa, ])
 
 stargazer(t3_col1_out, t3_col2_out, t3_col3_out, t3_col4_out, t3_col5_out,
-          type = "text",
           se = list(get_robust_se(t3_col1_out), get_robust_se(t3_col2_out),
                     get_robust_se(t3_col3_out), get_robust_se(t3_col4_out),
                     get_robust_se(t3_col5_out)),
@@ -593,15 +590,21 @@ ggplot(es_gfc_combined, aes(x = event_time, y = mean_CA,
 
 library(fixest)
 
+
+
 # Logit poolé avec FE temporels
+panel_annual_crisis = panel_annual_crisis %>% 
+mutate(abouttoasiancrisis = ifelse(iso3 %in% c("THA","KOR","IDN","MYS","PHL") &
+                        year %in% c(1994, 1995, 1996), 1, 0), )
+
 AsianModel <- feglm(
-  crisis_asian ~ InflowsGDP + OutflowsGDP + NFAGDP + 
-    PennRELY + gov_balance + NSGDP | year,  # FE temporels après le |
+  abouttoasiancrisis ~ InflowsGDP + OutflowsGDP + NFAGDP + 
+    PennRELY + gov_balance + NSGDP + FDEEP | year,  # FE temporels après le |
   data = panel_annual_crisis,
   family = binomial(link = "logit")
 )
 
-etable(AsianModel, tex = FALSE)
+etable(AsianModel, tex = TRUE)
 
 ArgModel <- feglm(
   crisis_arg ~ GrossFlows + CAGDP + NFAGDP + 

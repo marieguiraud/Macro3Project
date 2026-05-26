@@ -5,6 +5,7 @@ library(readxl)
 library(dplyr)
 library(imf.data)
 library(countrycode)
+library(haven)
 
 # ── 1. Pull all WDI-available Chinn-Prasad variables ────────────────────────
 
@@ -531,6 +532,8 @@ gross_flows = gross_flows %>%
 
 panel4 = panel4 %>% 
   left_join(gross_flows, by = c("iso3","year"))
+
+####Add Zucman Offshore wealth data
 
 
 ###Compile everything
