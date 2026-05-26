@@ -1,4 +1,5 @@
 library(pwt10)
+library(knitr)
 library(tidyverse)
 library(stargazer)
 library(plm)
@@ -7,8 +8,7 @@ library(zoo)
 library(lmtest)
 library(sandwich)
 
-#prelimiaries
-summary(panel_1995)
+
 # Data
 panel <- read.csv("Data/5yearPanel.csv")
 panel_1995 <- panel%>%
@@ -124,7 +124,7 @@ print(final_table)
 all_countries_reg1 <- lm( CAGDP ~ -1 + GOVBGDP + NFAGDP + RELY + RELY2 + RELDEPY + RELDEPO + YGRAVG + YGRSD + TOTSD + LREER + OPEN + FDEEP + ka_open + NSGDP, data = panel_p)
 summary(all_countries_reg1)
 
-#all countries with ne new variables 
+#all countries with new new variables 
 all_countries_reg2 <- lm( CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +  RELDEPY + RELDEPO + YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + ka_open, data = panel_1995[panel_1995$iso3 %in% all_countries, ])
 summary(all_countries_reg2)
 
@@ -153,8 +153,7 @@ excluding_africa_reg2 <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + P
                             data = panel_1995[panel_1995$iso3 %in% excluding_africa, ])
 summary(excluding_africa_reg2)
 
-#table 2 (run when missing value problem is solved) 
-#indutrial countries 
+ 
 industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + 
                    YGRAVG + YGRSD + CombinedTOTSD + BRREER + OPEN + FDEEP + 
                    ka_open + oil_exporter, 
@@ -162,6 +161,16 @@ industrial <- lm(CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + 
 
 summary(industrial)
 
+dev_excluding_africa_reg2 <- lm(
+  CAGDP ~ -1 + CombinedGOVBGDP + NFAGDP + PennRELY +
+    PennRELY2 + RELDEPY + RELDEPO +
+    YGRAVG + YGRSD + CombinedTOTSD +
+    BRREER + OPEN + FDEEP +
+    ka_open + oil_exporter,
+  data = panel_1995[panel_1995$iso3 %in% dev_excluding_africa, ]
+)
+
+summary(dev_excluding_africa_reg2)
 
 #table 3
 # Helper function for robust standard errors (HC1, as typical in this literature)
@@ -171,7 +180,6 @@ get_robust_se <- function(model) {
 
 # Formula for Table 3
 # Note: factor(year) adds time dummies
-# Note: oil_exporter will be automatically dropped for industrial countries (always 0) → matches the "-" in the paper
 formula_t3 <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
   ka_open + oil_exporter + factor(year)
