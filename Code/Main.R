@@ -266,9 +266,10 @@ panel_annual_1995 <- panel_annual %>%
     oil_exporter     = ifelse(iso3 %in% oil_exporting_countries, 1, 0),
     PennRELY2        = PennRELY^2) %>% 
      group_by(iso3) %>%
+    arrange(year) %>% 
      mutate(
-       CAGDP_lag       = lag(CAGDP, 1),
-       BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
+       CAGDP_lag       = dplyr::lag(CAGDP, 1),
+       BRREER_diff_lag = dplyr::lag(BRREER - dplyr::lag(BRREER, 1), 1)
      ) %>%
      ungroup()
 
