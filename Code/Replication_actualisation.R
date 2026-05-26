@@ -222,9 +222,10 @@ panel_annual_act <- panel_annual %>%
     oil_exporter     = ifelse(iso3 %in% oil_exporting_countries, 1, 0),
     PennRELY2        = PennRELY^2) %>% 
   group_by(iso3) %>%
+  arrange(year) %>% 
   mutate(
-    CAGDP_lag       = lag(CAGDP, 1),
-    BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
+    CAGDP_lag       = dplyr::lag(CAGDP, 1),
+    BRREER_diff_lag = dplyr::lag(BRREER - dplyr::lag(BRREER, 1), 1)
   ) %>%
   ungroup()
 
@@ -423,9 +424,10 @@ panel_annual_crisis <- panel_annual %>%
     PennRELY2    = PennRELY^2
   ) %>%
   group_by(iso3) %>%
+  arrange(year) %>% 
   mutate(
-    CAGDP_lag       = lag(CAGDP, 1),
-    BRREER_diff_lag = lag(BRREER - lag(BRREER, 1), 1)
+    CAGDP_lag       = dplyr::lag(CAGDP, 1),
+    BRREER_diff_lag = dplyr::lag(BRREER - dplyr::lag(BRREER, 1), 1)
   ) %>%
   ungroup() %>%
   mutate(
@@ -445,7 +447,7 @@ m_crisis_all <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + BRREER_diff_lag +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% all_countries, ]
@@ -454,7 +456,7 @@ m_crisis_all_excl_af <-lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + BRREER_diff_lag +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% excluding_africa, ]
@@ -463,7 +465,7 @@ m_crisis_industrial<- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + BRREER_diff_lag +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% industrial_countries, ]
@@ -472,7 +474,7 @@ m_crisis_dev <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
     RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open +
-    oil_exporter + BRREER_diff_lag +
+    oil_exporter + CAGDP_lag + BRREER_diff_lag +
     factor(year),
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% developing_countries, ]
@@ -480,7 +482,7 @@ m_crisis_dev <- lm(
 m_crisis_dev_excl <- lm(
   CAGDP ~
     IMFGOVBGDP * crisis_any + NFAGDP * crisis_any + PennRELY + PennRELY2 +
-    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open + BRREER_diff_lag, 
+    RELDEPY + RELDEPO + FDEEP + IndirectTOTS + gdpgr + OPEN + ka_open + CAGDP_lag +BRREER_diff_lag, 
   data = panel_annual_crisis[
     panel_annual_crisis$iso3 %in% dev_excluding_africa, ]
 )
@@ -488,8 +490,7 @@ m_crisis_dev_excl <- lm(
 stargazer(
   m_crisis_all, 
   m_crisis_all_excl_af, 
-  type = "text"
-)
+  type = "text")
 
 stargazer(
   m_crisis_dev,
