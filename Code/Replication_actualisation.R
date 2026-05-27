@@ -353,10 +353,14 @@ summary(t_4_col5_dev_excluding_africa_gr)
 get_robust_se <- function(model) {
   sqrt(diag(vcovHC(model, type = "HC1")))
 }
+panel_actualisation = panel_actualisation %>% 
+  group_by(iso3) %>% 
+  arrange(year) %>% 
+  mutate(lagKcontrols = dplyr::lag(ka_open))
 
 formula_t3_in <- InflowsGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
-  ka_open + oil_exporter + factor(year)
+  ka_open + lagKcontrols + oil_exporter + factor(year)
 
 t3_col1_in <- lm(formula_t3_in, data = panel_actualisation[panel_actualisation$iso3 %in% all_countries, ])
 t3_col2_in <- lm(formula_t3_in, data = panel_actualisation[panel_actualisation$iso3 %in% excluding_africa, ])
@@ -368,6 +372,7 @@ stargazer(t3_col1_in, t3_col2_in, t3_col3_in, t3_col4_in, t3_col5_in,
           se = list(get_robust_se(t3_col1_in), get_robust_se(t3_col2_in),
                     get_robust_se(t3_col3_in), get_robust_se(t3_col4_in),
                     get_robust_se(t3_col5_in)),
+          type = "text",
           omit        = "factor",
           omit.labels = "Time dummies",
           omit.stat   = c("f", "ser"),
@@ -380,8 +385,9 @@ stargazer(t3_col1_in, t3_col2_in, t3_col3_in, t3_col4_in, t3_col5_in,
             "Rel. dependency (young)", "Rel. dependency (old)",
             "Financial deepening", "ToT volatility",
             "Avg. GDP growth", "Openness ratio",
-            "Capital controls", "Oil exporter dummy"
-          ))
+            "Capital controls", "Capital controls in previous period", "Oil exporter dummy"
+          )
+)
 
 formula_t3_out <- OutflowsGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
@@ -397,6 +403,7 @@ stargazer(t3_col1_out, t3_col2_out, t3_col3_out, t3_col4_out, t3_col5_out,
           se = list(get_robust_se(t3_col1_out), get_robust_se(t3_col2_out),
                     get_robust_se(t3_col3_out), get_robust_se(t3_col4_out),
                     get_robust_se(t3_col5_out)),
+          type = "text",
           omit        = "factor",
           omit.labels = "Time dummies",
           omit.stat   = c("f", "ser"),
@@ -599,7 +606,7 @@ mutate(abouttoasiancrisis = ifelse(iso3 %in% c("THA","KOR","IDN","MYS","PHL") &
 
 AsianModel <- feglm(
   abouttoasiancrisis ~ InflowsGDP + OutflowsGDP + NFAGDP + 
-    PennRELY + gov_balance + NSGDP + FDEEP | year,  # FE temporels après le |
+    PennRELY + gov_balance + NSGDP + ka_open| year,  # FE temporels après le |
   data = panel_annual_crisis,
   family = binomial(link = "logit")
 )
