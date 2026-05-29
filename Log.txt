@@ -1,0 +1,50 @@
+April 13 :
+Read the paper, started looking for data. We found stuff for capital controls, but are struggling with finding World Bank Saving Database data. Notes are created to share info more easily. 
+
+April 21 : 
+First meeting with TA. Discussed potential data sources, decided to use Chinn-Ito index for capital controls, replacing KC1 and KC2 from the first paper. 
+
+May 7 : 
+Started actual work on the data. First approach was downloading in bunch data from the WDI, which proved too computationnaly costly and didn't fit in the git. Manageable datasets for Chinn-Ito index and NFA are found and start to be prepped. After much struggle, we decide to use the built-in WDI package to natively download data in R, and we manage to get some variable into our dataset.
+
+May 13 and 14 :
+All the standard variables finally get built, using WDI and by merging all the datasets we were able to locate and input into the git. Data on government balance is still lacking.
+
+May 15 :
+Data on government balance is located via the Internation Financial Statistics database of the IMF, and merged with our dataframe. Work on replication starts, and a first version of our replicated table 1 is produced. First ideas about possible extensions are formulated.
+
+May 16 :
+Work on writing a replication on table 2 of the original paper starts.
+
+May 17 : 
+Several alternative data sources with better yield are identified and merged into the dataset, for RELY with Penn world tables, LREER with Bruegel data, TOTS data from implicit prices in exports and imports time series, and Government Balance via an alternative IMF-hosted database.
+
+May 18 :
+To limit NAs, experimentation an imputation method is started to try to limit the problems with NAs. This is later stopped after discussion with the TA on the risk of biased results.
+
+May 19 : 
+Start of some data mprovement work on combining timeseries. Oil exporters are defined as OPEC members after a debate amoung team members, due to a lack of Clarity in the paper. First attempts at replicating tables 3-5, by creating an annual dataframe. Due to a lack of preplanning for this, merging is imperfect and introduces bugs that are fixed. A bug is discovered on RELY, where standard deviation was erroneously used instead of mean.
+
+May 20 : 
+A bug in the annual panel formating is found and fixed.
+
+May 21 : 
+Work on the actualisation, i.e. use of the full timespan data starts.
+
+May 22 :
+Graphs for out first extensions start to be built, and actualisation proper is completed. An outlier for government balance is discovered and promptly removed from our sample.
+
+May 24 : 
+A miscommunication in the data pipeline is fixed, after it was noticed that newer data files weren't used in other codes.  Work on extensions on crises and savings is made.
+
+May 25 :
+Work on our extension on crises is made and completed. Work on the report starts.
+
+May 26 : 
+An error with the lag function used is found and adressed, leading to all remaining problematic tables displaying, at long last, coherent results. The approach on the extension made to crises is ajusted, and tables are updated. A beamer is created for the presentation.
+
+May 27
+Presentation day. Following a suggestion from the TA, a lagged capital control variable is Added and used to test an hypothesis.
+
+May 28 : 
+Report is thoroughly read by all and minor corrections are made. Log is completed and uploaded on the git. 
