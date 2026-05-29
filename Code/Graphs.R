@@ -1,20 +1,20 @@
-
-# FIGURES 1-4 — Reproduction of Chinn and Prasad graphics. 
-
+# ============================================================
+# FIGURES 1-4 — Reproduction des graphiques de Chinn-Prasad
+# ============================================================
 install.packages("gridExtra")
 library(gridExtra)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-panel1<-read.csv("Data/5yearPanel.csv")
+panel1<-read.csv("Data/panel_3.csv")
 panel_1995 <- panel1%>%
   filter(year <= 1995) %>% 
   mutate(PennRELY2=PennRELY^2, RELY2 = RELY^2)
 
-# Figure 1 : CA vs NFA initial (cross-section)
+# ── Figure 1 : CA vs NFA initial (cross-section) ─────────────────────────────
 
-# NFA initial = mean on 5 years
+# NFA initial = moyenne des 5 premières années par pays
 initial_nfa <- panel_1995 %>%
   filter(iso3 %in% all_countries) %>%
   arrange(iso3, year) %>%
@@ -53,7 +53,7 @@ fig1_dev <- plot_fig1("Developing")
 gridExtra::grid.arrange(fig1_ind, fig1_dev, ncol = 1,
                         top = "Fig. 1 — Current accounts and net foreign assets, cross section")
 
-# Figure 2 : CA vs relative income (cross-section)
+# ── Figure 2 : CA vs revenu relatif (cross-section) ──────────────────────────
 
 mean_rely <- panel_1995 %>%
   filter(iso3 %in% all_countries) %>%
@@ -154,7 +154,7 @@ gridExtra::grid.arrange(grobs = fig3_plots, ncol = 2,
 
 # ── Figure 4 : Partial scatterplots ──────────────────────────────────────────
 
-
+# Résidus après partialling out les autres régresseurs
 partial_resid <- function(data, y, x, controls) {
   f_y <- as.formula(paste(y, "~", paste(controls, collapse = " + ")))
   f_x <- as.formula(paste(x, "~", paste(controls, collapse = " + ")))
@@ -200,8 +200,9 @@ panel1<-read.csv("Data/panel_3.csv")
 panel_act <- panel1%>%
   mutate(PennRELY2=PennRELY^2, RELY2 = RELY^2)
 
-# Figure 1 : CA vs NFA initial (cross-section) 
+# ── Figure 1 : CA vs NFA initial (cross-section) ─────────────────────────────
 
+# NFA initial = moyenne des 5 premières années par pays
 initial_nfa_act <- panel_act %>%
   filter(iso3 %in% all_countries) %>%
   arrange(iso3, year) %>%
@@ -240,7 +241,7 @@ fig1_dev_act <- plot_fig1_act("Developing")
 gridExtra::grid.arrange(fig1_ind_act, fig1_dev_act, ncol = 1,
                         top = "Fig. 1 — Current accounts and net foreign assets, cross section with actual data")
 
-# Figure 2 : CA vs revenu relatif (cross-section) 
+# ── Figure 2 : CA vs revenu relatif (cross-section) ──────────────────────────
 
 mean_rely_act <- panel_act %>%
   filter(iso3 %in% all_countries) %>%
@@ -266,9 +267,9 @@ fig2_act <- ggplot(fig2_data_act, aes(x = mean_RELY, y = mean_CAGDP, label = lab
 
 print(fig2_act)
 
-# Figure 3 : Actual vs Fitted CA for developing countries
+# ── Figure 3 : Actual vs Fitted CA pour les pays en développement ─────────────
 
-# Régression with and without time dummy
+# Régression avec et sans dummies temporelles
 formula_with_act    <- CAGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 +
   RELDEPY + RELDEPO + FDEEP + CombinedTOTSD + YGRAVG + OPEN +
   ka_open + oil_exporter + factor(year)
@@ -340,9 +341,9 @@ fig3_plots_act <- lapply(names(blocks), function(blk) {
 gridExtra::grid.arrange(grobs = fig3_plots_act, ncol = 2,
                         top = "Fig. 3 — Actual, fitted current accounts: developing country blocks, with actual data")
 
-# Figure 4 : Partial scatterplots 
+# ── Figure 4 : Partial scatterplots ──────────────────────────────────────────
 
-
+# Résidus après partialling out les autres régresseurs
 partial_resid_act <- function(data, y, x, controls) {
   f_y <- as.formula(paste(y, "~", paste(controls, collapse = " + ")))
   f_x <- as.formula(paste(x, "~", paste(controls, collapse = " + ")))
