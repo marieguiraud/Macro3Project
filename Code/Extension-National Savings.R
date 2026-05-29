@@ -1,6 +1,6 @@
 library(lmtest)
 
-#table 3
+#table 3 : regression of variables on the national savings
 get_robust_se <- function(model) {
   sqrt(diag(vcovHC(model, type = "HC1")))
 }
@@ -35,7 +35,7 @@ stargazer(t3_col1_ns, t3_col2_ns, t3_col3_ns, t3_col4_ns, t3_col5_ns,
             "Capital controls", "Oil exporter dummy"
           ))
 
-#table 4
+#table 4 regression on national savings
 t4_col1_all_countries_act_ns <- plm(COMBINEDNSGDP ~ CombinedGOVBGDP + NFAGDP + PennRELY + PennRELY2 + RELDEPY + RELDEPO + FDEEP + ka_open,
                                  data = panel_actualisation[panel_actualisation$iso3 %in% all_countries, ],
                                  index = c("iso3", "year"),
@@ -66,11 +66,9 @@ t_4_col5_dev_excluding_africa_act_ns <- plm(COMBINEDNSGDP ~ CombinedGOVBGDP + NF
                                          model = "within", effect = "twoways")
 summary(t_4_col5_dev_excluding_africa_act_ns)
 
-#calcul de l'offset ricardien 
+#calcul of the rcardian's offset and test of the heterogeneity on the financial deepening
 
-# ============================================================
-# EXTENSION 2 — Offset ricardien hétérogène (GOVBGDP × FDEEP)
-# ============================================================
+
 
 panel_actualisation <- panel_actualisation %>%
   mutate(S_private = COMBINEDNSGDP - CombinedGOVBGDP)
@@ -103,7 +101,6 @@ stargazer(r_col1_act, r_col2_act, r_col3_act, r_col4_act, r_col5_act,
                                "Financial deepening (FDEEP)",
                                "GOV × FDEEP"))
 
-# ── Offset total aux percentiles 25/50/75 de FDEEP ──────────
 fdeep_q <- quantile(
   panel_actualisation[panel_actualisation$iso3 %in% developing_countries, "FDEEP"],
   probs = c(0.25, 0.50, 0.75), na.rm = TRUE
@@ -117,3 +114,4 @@ for (q in names(fdeep_q)) {
   offset <- b_gov + b_interact * fdeep_q[q]
   cat(sprintf("  FDEEP au %s (%.2f) : offset = %.3f\n", q, fdeep_q[q], offset))
 }
+

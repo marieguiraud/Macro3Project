@@ -506,7 +506,7 @@ stargazer(
 
 #event study to grephically understand the moves in CA around crisis. 
 
-# ── EVENT STUDY ──────────────────────────────────────────────
+# EVENT STUDY
 
 #1. asian crisis -1997
 es_asian <- panel_annual_crisis %>%
